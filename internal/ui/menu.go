@@ -8,13 +8,16 @@ import (
 )
 
 var (
-	// High contrast colors for minimalist theme
-	textColor     = lipgloss.Color("15")  // White
-	accentColor   = lipgloss.Color("3")   // Yellow
-	selectedColor = lipgloss.Color("0")   // Black
-	selectedBg    = lipgloss.Color("3")   // Yellow background
-	borderColor   = lipgloss.Color("8")  // Gray
-	dimColor      = lipgloss.Color("8")   // Gray
+	// Elegant color palette
+	textColor      = lipgloss.Color("15")  // White
+	accentColor    = lipgloss.Color("11")  // Bright yellow
+	selectedColor  = lipgloss.Color("11")  // Bright yellow for selection
+	borderColor    = lipgloss.Color("240") // Subtle gray
+	dimColor       = lipgloss.Color("244") // Muted gray
+	highlightColor = lipgloss.Color("220") // Warm yellow
+	liveColor      = lipgloss.Color("196") // Red for live
+	goalColor      = lipgloss.Color("46")  // Green for goals
+	cardColor      = lipgloss.Color("226") // Yellow for cards
 
 	// Menu styles
 	menuItemStyle = lipgloss.NewStyle().
@@ -23,7 +26,6 @@ var (
 
 	menuItemSelectedStyle = lipgloss.NewStyle().
 				Foreground(selectedColor).
-				Background(selectedBg).
 				Bold(true).
 				Padding(0, 1)
 
@@ -48,7 +50,7 @@ func RenderMainMenu(width, height, selected int) string {
 		"Favourites",
 	}
 
-	var items []string
+	items := make([]string, 0, len(menuItems))
 	for i, item := range menuItems {
 		if i == selected {
 			items = append(items, menuItemSelectedStyle.Render("→ "+item))
@@ -79,4 +81,3 @@ func RenderMainMenu(width, height, selected int) string {
 		content,
 	)
 }
-
