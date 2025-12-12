@@ -13,10 +13,10 @@ type League struct {
 
 // Team represents a football team
 type Team struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
 	ShortName string `json:"short_name"`
-	Logo     string `json:"logo,omitempty"`
+	Logo      string `json:"logo,omitempty"`
 }
 
 // MatchStatus represents the status of a match
@@ -32,16 +32,16 @@ const (
 
 // Match represents a football match
 type Match struct {
-	ID          int         `json:"id"`
-	League      League      `json:"league"`
-	HomeTeam    Team        `json:"home_team"`
-	AwayTeam    Team        `json:"away_team"`
-	Status      MatchStatus `json:"status"`
-	HomeScore   *int        `json:"home_score,omitempty"`
-	AwayScore   *int        `json:"away_score,omitempty"`
-	MatchTime   *time.Time  `json:"match_time,omitempty"`
-	LiveTime    *string     `json:"live_time,omitempty"` // e.g., "45+2", "HT", "FT"
-	Round       string      `json:"round,omitempty"`
+	ID        int         `json:"id"`
+	League    League      `json:"league"`
+	HomeTeam  Team        `json:"home_team"`
+	AwayTeam  Team        `json:"away_team"`
+	Status    MatchStatus `json:"status"`
+	HomeScore *int        `json:"home_score,omitempty"`
+	AwayScore *int        `json:"away_score,omitempty"`
+	MatchTime *time.Time  `json:"match_time,omitempty"`
+	LiveTime  *string     `json:"live_time,omitempty"` // e.g., "45+2", "HT", "FT"
+	Round     string      `json:"round,omitempty"`
 }
 
 // MatchEvent represents an event in a match (goal, card, substitution, etc.)
@@ -66,15 +66,14 @@ type MatchDetails struct {
 
 // LeagueTableEntry represents a team's position in the league table
 type LeagueTableEntry struct {
-	Position int    `json:"position"`
-	Team     Team   `json:"team"`
-	Played   int    `json:"played"`
-	Won      int    `json:"won"`
-	Drawn    int    `json:"drawn"`
-	Lost     int    `json:"lost"`
-	GoalsFor int    `json:"goals_for"`
-	GoalsAgainst int `json:"goals_against"`
-	GoalDifference int `json:"goal_difference"`
-	Points   int    `json:"points"`
+	Position       int  `json:"position"`
+	Team           Team `json:"team"`
+	Played         int  `json:"played"`
+	Won            int  `json:"won"`
+	Drawn          int  `json:"drawn"`
+	Lost           int  `json:"lost"`
+	GoalsFor       int  `json:"goals_for"`
+	GoalsAgainst   int  `json:"goals_against"`
+	GoalDifference int  `json:"goal_difference"`
+	Points         int  `json:"points"`
 }
-
