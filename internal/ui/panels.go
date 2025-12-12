@@ -9,16 +9,16 @@ import (
 )
 
 var (
-	// Elegant panel styles with subtle borders
+	// Modern Neon panel styles - rounded borders with cyan
 	panelStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(borderColor).
 			Padding(1, 2).
 			Margin(0, 0)
 
-	// Header style - elegant and refined
+	// Header style - modern with cyan accent
 	panelTitleStyle = lipgloss.NewStyle().
-			Foreground(textColor).
+			Foreground(accentColor).
 			Bold(true).
 			PaddingBottom(1).
 			BorderBottom(true).
@@ -26,19 +26,16 @@ var (
 			BorderForeground(borderColor).
 			MarginBottom(1)
 
-	// Selection styling - elegant text color change (no background)
+	// Selection styling - modern neon with background highlight
 	matchListItemStyle = lipgloss.NewStyle().
 				Foreground(textColor).
-				Padding(0, 1)
+				Padding(0, 2)
 
 	matchListItemSelectedStyle = lipgloss.NewStyle().
 					Foreground(selectedColor).
+					Background(selectedBg).
 					Bold(true).
-					Padding(0, 1).
-					BorderLeft(true).
-					BorderStyle(lipgloss.ThickBorder()).
-					BorderForeground(selectedColor).
-					PaddingLeft(2)
+					Padding(0, 2)
 
 	// Match details styles - refined typography
 	matchTitleStyle = lipgloss.NewStyle().
@@ -49,7 +46,9 @@ var (
 	matchScoreStyle = lipgloss.NewStyle().
 			Foreground(accentColor).
 			Bold(true).
-			Margin(0, 1)
+			Margin(0, 1).
+			Background(lipgloss.Color("0")).
+			Padding(0, 1)
 
 	matchStatusStyle = lipgloss.NewStyle().
 				Foreground(liveColor).
@@ -110,7 +109,7 @@ func RenderMultiPanelView(width, height int, matches []MatchDisplay, selected in
 	// Render right panel (minute-by-minute)
 	rightPanel := renderMinuteByMinutePanel(rightWidth, height, details)
 
-	// Create elegant vertical separator
+	// Create modern neon vertical separator
 	separatorStyle := lipgloss.NewStyle().
 		Foreground(borderColor).
 		Height(height).
@@ -190,7 +189,7 @@ func renderMatchListItem(match MatchDisplay, selected bool, width int) string {
 		statusIndicator = statusStyle.Render("VS")
 	}
 
-	// Teams with better spacing
+	// Teams with modern neon styling
 	homeTeamStyle := lipgloss.NewStyle().Foreground(textColor)
 	awayTeamStyle := lipgloss.NewStyle().Foreground(textColor)
 	if selected {

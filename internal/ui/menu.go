@@ -8,16 +8,17 @@ import (
 )
 
 var (
-	// Elegant color palette
+	// Modern Neon color palette - vibrant, high-energy
 	textColor      = lipgloss.Color("15")  // White
-	accentColor    = lipgloss.Color("11")  // Bright yellow
-	selectedColor  = lipgloss.Color("11")  // Bright yellow for selection
-	borderColor    = lipgloss.Color("240") // Subtle gray
-	dimColor       = lipgloss.Color("244") // Muted gray
-	highlightColor = lipgloss.Color("220") // Warm yellow
-	liveColor      = lipgloss.Color("196") // Red for live
-	goalColor      = lipgloss.Color("46")  // Green for goals
-	cardColor      = lipgloss.Color("226") // Yellow for cards
+	accentColor    = lipgloss.Color("51")  // Bright cyan
+	selectedColor  = lipgloss.Color("15")  // White (on cyan background)
+	selectedBg     = lipgloss.Color("51")  // Bright cyan background
+	borderColor    = lipgloss.Color("51")  // Cyan borders
+	dimColor       = lipgloss.Color("244") // Gray
+	highlightColor = lipgloss.Color("51")  // Cyan highlight
+	liveColor      = lipgloss.Color("196") // Bright red
+	goalColor      = lipgloss.Color("46")  // Bright green
+	cardColor      = lipgloss.Color("226") // Bright yellow
 
 	// Menu styles
 	menuItemStyle = lipgloss.NewStyle().
@@ -26,8 +27,9 @@ var (
 
 	menuItemSelectedStyle = lipgloss.NewStyle().
 				Foreground(selectedColor).
+				Background(selectedBg).
 				Bold(true).
-				Padding(0, 1)
+				Padding(0, 2)
 
 	menuTitleStyle = lipgloss.NewStyle().
 			Foreground(accentColor).
