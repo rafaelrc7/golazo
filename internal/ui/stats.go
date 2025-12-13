@@ -300,4 +300,3 @@ func renderStatsEvent(event api.MatchEvent) string {
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, minute, eventText)
 }
-

@@ -15,4 +15,3 @@ func GetFootballDataAPIKey() (string, error) {
 
 	return apiKey, nil
 }
-

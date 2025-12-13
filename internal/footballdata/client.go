@@ -152,7 +152,7 @@ func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetai
 
 	baseMatch := match.footballdataMatch.toAPIMatch()
 	details := &api.MatchDetails{
-		Match: baseMatch,
+		Match:  baseMatch,
 		Events: []api.MatchEvent{}, // Football-Data.org doesn't provide events in basic match details
 	}
 
@@ -239,14 +239,14 @@ func (c *Client) LeagueTable(ctx context.Context, leagueID int) ([]api.LeagueTab
 					ShortName string `json:"shortName"`
 					Crest     string `json:"crest,omitempty"`
 				} `json:"team"`
-				PlayedGames int `json:"playedGames"`
-				Won         int `json:"won"`
-				Draw        int `json:"draw"`
-				Lost        int `json:"lost"`
-				GoalsFor    int `json:"goalsFor"`
-				GoalsAgainst int `json:"goalsAgainst"`
+				PlayedGames    int `json:"playedGames"`
+				Won            int `json:"won"`
+				Draw           int `json:"draw"`
+				Lost           int `json:"lost"`
+				GoalsFor       int `json:"goalsFor"`
+				GoalsAgainst   int `json:"goalsAgainst"`
 				GoalDifference int `json:"goalDifference"`
-				Points      int `json:"points"`
+				Points         int `json:"points"`
 			} `json:"table"`
 		} `json:"standings"`
 	}
@@ -262,7 +262,7 @@ func (c *Client) LeagueTable(ctx context.Context, leagueID int) ([]api.LeagueTab
 	entries := make([]api.LeagueTableEntry, 0, len(response.Standings[0].Table))
 	for _, row := range response.Standings[0].Table {
 		entries = append(entries, api.LeagueTableEntry{
-			Position:       row.Position,
+			Position: row.Position,
 			Team: api.Team{
 				ID:        row.Team.ID,
 				Name:      row.Team.Name,
@@ -282,4 +282,3 @@ func (c *Client) LeagueTable(ctx context.Context, leagueID int) ([]api.LeagueTab
 
 	return entries, nil
 }
-

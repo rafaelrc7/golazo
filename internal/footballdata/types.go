@@ -121,4 +121,3 @@ func (m footballdataMatch) toAPIMatch() api.Match {
 
 	return match
 }
-
