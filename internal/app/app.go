@@ -80,7 +80,10 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "enter":
 		if m.selected == 0 {
-			// Load matches and switch to live matches view
+			// Stats - do nothing, stay on main view
+			return m, nil
+		} else if m.selected == 1 {
+			// Live Matches - load matches and switch to live matches view
 			matches, err := data.MockMatches()
 			if err != nil {
 				// If loading fails, switch view with empty matches
@@ -111,7 +114,6 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 		}
-		// Favourites does nothing for now
 		return m, nil
 	}
 	return m, nil

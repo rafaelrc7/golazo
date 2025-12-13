@@ -26,14 +26,13 @@ var (
 			BorderForeground(borderColor).
 			MarginBottom(1)
 
-	// Selection styling - modern neon with background highlight
+	// Selection styling - modern neon with text color highlight
 	matchListItemStyle = lipgloss.NewStyle().
 				Foreground(textColor).
 				Padding(0, 2)
 
 	matchListItemSelectedStyle = lipgloss.NewStyle().
-					Foreground(selectedColor).
-					Background(selectedBg).
+					Foreground(highlightColor).
 					Bold(true).
 					Padding(0, 2)
 
@@ -193,8 +192,8 @@ func renderMatchListItem(match MatchDisplay, selected bool, width int) string {
 	homeTeamStyle := lipgloss.NewStyle().Foreground(textColor)
 	awayTeamStyle := lipgloss.NewStyle().Foreground(textColor)
 	if selected {
-		homeTeamStyle = homeTeamStyle.Foreground(selectedColor).Bold(true)
-		awayTeamStyle = awayTeamStyle.Foreground(selectedColor).Bold(true)
+		homeTeamStyle = homeTeamStyle.Foreground(highlightColor).Bold(true)
+		awayTeamStyle = awayTeamStyle.Foreground(highlightColor).Bold(true)
 	}
 
 	homeTeam := homeTeamStyle.Render(match.HomeTeam.ShortName)

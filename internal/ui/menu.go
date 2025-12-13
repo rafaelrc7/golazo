@@ -26,8 +26,7 @@ var (
 			Padding(0, 1)
 
 	menuItemSelectedStyle = lipgloss.NewStyle().
-				Foreground(selectedColor).
-				Background(selectedBg).
+				Foreground(highlightColor).
 				Bold(true).
 				Padding(0, 2)
 
@@ -48,8 +47,8 @@ var (
 // selected indicates which menu item is currently selected (0-indexed).
 func RenderMainMenu(width, height, selected int) string {
 	menuItems := []string{
+		"Stats",
 		"Live Matches",
-		"Favourites",
 	}
 
 	items := make([]string, 0, len(menuItems))
