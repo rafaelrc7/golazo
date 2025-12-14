@@ -37,4 +37,3 @@ func ToMatchListItems(matches []MatchDisplay) []list.Item {
 	}
 	return items
 }
-

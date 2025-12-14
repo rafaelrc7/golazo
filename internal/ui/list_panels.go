@@ -14,7 +14,7 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string 
 	titleHeight := 3 // Title + spacing
 	availableWidth := width - h
 	availableHeight := height - v - titleHeight
-	
+
 	// Set list size
 	listModel.SetSize(availableWidth, availableHeight)
 
@@ -44,7 +44,7 @@ func RenderStatsListPanel(width, height int, listModel list.Model) string {
 	titleHeight := 3 // Title + spacing
 	availableWidth := width - h
 	availableHeight := height - v - titleHeight
-	
+
 	// Set list size
 	listModel.SetSize(availableWidth, availableHeight)
 
@@ -142,4 +142,3 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 
 	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, combined)
 }
-

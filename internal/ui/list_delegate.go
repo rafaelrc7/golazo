@@ -8,7 +8,7 @@ import (
 // NewMatchListDelegate creates a custom list delegate for match items.
 func NewMatchListDelegate() list.DefaultDelegate {
 	d := list.NewDefaultDelegate()
-	
+
 	// Customize styles - use highlight color for selected items
 	d.Styles.SelectedTitle = d.Styles.SelectedTitle.
 		Foreground(highlightColor).
@@ -17,14 +17,14 @@ func NewMatchListDelegate() list.DefaultDelegate {
 	d.Styles.SelectedDesc = d.Styles.SelectedDesc.
 		Foreground(highlightColor).
 		Padding(0, 2)
-	
+
 	d.Styles.NormalTitle = d.Styles.NormalTitle.
 		Foreground(textColor).
 		Padding(0, 2)
 	d.Styles.NormalDesc = d.Styles.NormalDesc.
 		Foreground(dimColor).
 		Padding(0, 2)
-	
+
 	return d
 }
 
@@ -32,4 +32,3 @@ func NewMatchListDelegate() list.DefaultDelegate {
 func MatchListStyles() lipgloss.Style {
 	return panelStyle
 }
-
