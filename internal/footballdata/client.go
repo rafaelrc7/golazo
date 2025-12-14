@@ -61,7 +61,7 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 	currentDate := dateFrom
 	for !currentDate.After(dateTo) {
 		dateStr := currentDate.Format("2006-01-02")
-		
+
 		// Query each supported league for this date
 		for _, leagueID := range SupportedLeagues {
 			// Use single date parameter with league and status filter
@@ -103,7 +103,7 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 				}
 			}
 		}
-		
+
 		// Move to next day
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
@@ -111,17 +111,12 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 	return allMatches, nil
 }
 
-// RecentFinishedMatches retrieves finished matches from the last N days.
-// Defaults to last 7 days if days is 0.
+// RecentFinishedMatches retrieves finished matches from today only.
+// Optimized to reduce API calls by querying only today's matches.
 func (c *Client) RecentFinishedMatches(ctx context.Context, days int) ([]api.Match, error) {
-	if days == 0 {
-		days = 7
-	}
-
-	dateTo := time.Now()
-	dateFrom := dateTo.AddDate(0, 0, -days)
-
-	return c.FinishedMatchesByDateRange(ctx, dateFrom, dateTo)
+	// Only query today's matches to optimize API calls
+	today := time.Now()
+	return c.FinishedMatchesByDateRange(ctx, today, today)
 }
 
 // MatchesByDate retrieves all matches for a specific date.

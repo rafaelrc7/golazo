@@ -26,45 +26,59 @@ func main() {
 	// Test the API endpoint directly
 	baseURL := "https://v3.football.api-sports.io"
 
-	// Test 1: Get fixtures for today
-	fmt.Println("Test 1: Fetching fixtures for today...")
+	// Test 1: Get all fixtures for today (no filters)
+	fmt.Println("Test 1: Fetching all fixtures for today...")
 	today := time.Now().Format("2006-01-02")
 	url1 := fmt.Sprintf("%s/fixtures?date=%s", baseURL, today)
 	testEndpoint(url1, apiKey)
 
-	// Test 2: Get fixtures with date range (last 7 days) - NOTE: This doesn't work, see Test 2b
-	fmt.Println("\nTest 2: Fetching fixtures from last 7 days (from/to - may not work)...")
-	dateFrom := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
-	dateTo := time.Now().Format("2006-01-02")
-	url2 := fmt.Sprintf("%s/fixtures?from=%s&to=%s", baseURL, dateFrom, dateTo)
+	// Test 2: Get finished matches for today (all leagues)
+	fmt.Println("\nTest 2: Fetching finished matches for today (all leagues)...")
+	url2 := fmt.Sprintf("%s/fixtures?date=%s&status=FT", baseURL, today)
 	testEndpoint(url2, apiKey)
 
-	// Test 2b: Get fixtures by querying yesterday individually (this works)
-	fmt.Println("\nTest 2b: Fetching fixtures for yesterday (single date - this works)...")
-	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
-	url2b := fmt.Sprintf("%s/fixtures?date=%s&status=FT", baseURL, yesterday)
-	testEndpoint(url2b, apiKey)
-
-	// Test 3: Get finished matches only (from/to - may not work)
-	fmt.Println("\nTest 3: Fetching finished matches from last 7 days (from/to - may not work)...")
-	url3 := fmt.Sprintf("%s/fixtures?from=%s&to=%s&status=FT", baseURL, dateFrom, dateTo)
+	// Test 3: Get finished matches for today - Premier League only
+	fmt.Println("\nTest 3: Fetching finished Premier League matches for today...")
+	url3 := fmt.Sprintf("%s/fixtures?date=%s&status=FT&league=39", baseURL, today)
 	testEndpoint(url3, apiKey)
 
-	// Test 4: Get fixtures with specific league (Premier League = 39)
-	fmt.Println("\nTest 4: Fetching Premier League fixtures from last 7 days...")
-	url4 := fmt.Sprintf("%s/fixtures?from=%s&to=%s&league=39", baseURL, dateFrom, dateTo)
+	// Test 4: Get finished matches for today - La Liga only
+	fmt.Println("\nTest 4: Fetching finished La Liga matches for today...")
+	url4 := fmt.Sprintf("%s/fixtures?date=%s&status=FT&league=140", baseURL, today)
 	testEndpoint(url4, apiKey)
 
-	// Test 5: Get finished matches with league filter
-	fmt.Println("\nTest 5: Fetching finished Premier League matches from last 7 days...")
-	url5 := fmt.Sprintf("%s/fixtures?from=%s&to=%s&status=FT&league=39", baseURL, dateFrom, dateTo)
+	// Test 5: Get finished matches for today - Bundesliga only
+	fmt.Println("\nTest 5: Fetching finished Bundesliga matches for today...")
+	url5 := fmt.Sprintf("%s/fixtures?date=%s&status=FT&league=78", baseURL, today)
 	testEndpoint(url5, apiKey)
 
-	// Test 6: Get fixtures with season parameter (2024)
-	fmt.Println("\nTest 6: Fetching fixtures with season parameter...")
-	currentYear := time.Now().Year()
-	url6 := fmt.Sprintf("%s/fixtures?from=%s&to=%s&season=%d&league=39", baseURL, dateFrom, dateTo, currentYear)
-	testEndpoint(url6, apiKey)
+	// Test 6: Test all supported leagues in one go (simulating actual app behavior)
+	fmt.Println("\nTest 6: Testing all supported leagues for today (simulating app behavior)...")
+	supportedLeagues := []int{39, 140, 78, 135, 61} // Premier League, La Liga, Bundesliga, Serie A, Ligue 1
+	totalMatches := 0
+	for _, leagueID := range supportedLeagues {
+		url := fmt.Sprintf("%s/fixtures?date=%s&status=FT&league=%d", baseURL, today, leagueID)
+		fmt.Printf("  League %d: ", leagueID)
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set("x-apisports-key", apiKey)
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			var result map[string]interface{}
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			json.Unmarshal(bodyBytes, &result)
+			resp.Body.Close()
+			if response, ok := result["response"].([]interface{}); ok {
+				fmt.Printf("%d matches\n", len(response))
+				totalMatches += len(response)
+			} else {
+				fmt.Printf("0 matches\n")
+			}
+		} else {
+			fmt.Printf("error\n")
+		}
+	}
+	fmt.Printf("  Total finished matches across all supported leagues: %d\n", totalMatches)
 }
 
 func testEndpoint(url string, apiKey string) {
