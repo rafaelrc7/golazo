@@ -42,8 +42,8 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 	dateToStr := dateTo.Format("2006-01-02")
 
 	// API-Football.com uses /fixtures endpoint with date range
-	// Fetch all matches in date range, then filter for finished ones
-	url := fmt.Sprintf("%s/fixtures?date=%s&to=%s", c.baseURL, dateFromStr, dateToStr)
+	// Use 'from' and 'to' parameters for date range, and filter for finished matches (status=FT)
+	url := fmt.Sprintf("%s/fixtures?from=%s&to=%s&status=FT", c.baseURL, dateFromStr, dateToStr)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -74,9 +74,14 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
+	// Convert all matches (already filtered by status=FT in the API call)
 	matches := make([]api.Match, 0, len(response.Response))
 	for _, m := range response.Response {
-		matches = append(matches, m.toAPIMatch())
+		apiMatch := m.toAPIMatch()
+		// Double-check status is finished (should already be filtered by API)
+		if apiMatch.Status == api.MatchStatusFinished {
+			matches = append(matches, apiMatch)
+		}
 	}
 
 	return matches, nil
