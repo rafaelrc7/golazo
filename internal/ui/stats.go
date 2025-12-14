@@ -59,12 +59,10 @@ func renderFinishedMatchesPanel(width, height int, matches []MatchDisplay, selec
 	if len(matches) == 0 {
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(dimColor).
-			Italic(true).
-			Padding(2, 0).
+			Padding(1, 0).
 			Align(lipgloss.Center).
 			Width(contentWidth)
-		items = append(items, emptyStyle.Render("📊 No finished matches"))
-		items = append(items, emptyStyle.Render("Matches will appear here once completed"))
+		items = append(items, emptyStyle.Render("No finished matches"))
 	} else {
 		for i, match := range matches {
 			item := renderFinishedMatchListItem(match, i == selected, contentWidth)
@@ -137,14 +135,12 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 	if details == nil {
 		emptyStyle := lipgloss.NewStyle().
 			Foreground(dimColor).
-			Italic(true).
-			Padding(2, 0).
+			Padding(1, 0).
 			Align(lipgloss.Center).
 			Width(width - 6)
 		content := lipgloss.JoinVertical(
 			lipgloss.Center,
-			emptyStyle.Render("📈 Select a match"),
-			emptyStyle.Render("to view statistics"),
+			emptyStyle.Render("Select a match"),
 		)
 		panelContent := lipgloss.JoinVertical(
 			lipgloss.Left,
@@ -171,8 +167,8 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 		stats = append(stats, lipgloss.NewStyle().
 			Width(contentWidth).
 			Align(lipgloss.Center).
-			MarginTop(1).
-			MarginBottom(1).
+			MarginTop(0).
+			MarginBottom(0).
 			Render(matchScoreStyle.Render(scoreText)))
 	}
 
@@ -202,13 +198,6 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 
 	// Events summary
 	if len(details.Events) > 0 {
-		stats = append(stats, "")
-		stats = append(stats, lipgloss.NewStyle().
-			Foreground(accentColor).
-			Bold(true).
-			Render("Match Events"))
-		stats = append(stats, "")
-
 		// Count events by type
 		goals := 0
 		cards := 0
@@ -220,15 +209,20 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 			}
 		}
 
-		if goals > 0 {
-			stats = append(stats, lipgloss.NewStyle().
-				Foreground(goalColor).
-				Render(fmt.Sprintf("⚽ Goals: %d", goals)))
-		}
-		if cards > 0 {
-			stats = append(stats, lipgloss.NewStyle().
-				Foreground(cardColor).
-				Render(fmt.Sprintf("🟨 Cards: %d", cards)))
+		if goals > 0 || cards > 0 {
+			stats = append(stats, "")
+			summary := make([]string, 0)
+			if goals > 0 {
+				summary = append(summary, lipgloss.NewStyle().
+					Foreground(goalColor).
+					Render(fmt.Sprintf("Goals: %d", goals)))
+			}
+			if cards > 0 {
+				summary = append(summary, lipgloss.NewStyle().
+					Foreground(cardColor).
+					Render(fmt.Sprintf("Cards: %d", cards)))
+			}
+			stats = append(stats, strings.Join(summary, " | "))
 		}
 
 		// Show recent events (last 5)
@@ -239,12 +233,6 @@ func renderMatchStatsPanel(width, height int, details *api.MatchDetails) string 
 
 		if len(recentEvents) > 0 {
 			stats = append(stats, "")
-			stats = append(stats, lipgloss.NewStyle().
-				Foreground(accentColor).
-				Bold(true).
-				Render("Recent Events"))
-			stats = append(stats, "")
-
 			for _, event := range recentEvents {
 				eventText := renderStatsEvent(event)
 				stats = append(stats, eventText)
@@ -289,7 +277,7 @@ func renderStatsEvent(event api.MatchEvent) string {
 			player = *event.Player
 		}
 		teamName := event.Team.ShortName
-		eventText = eventGoalStyle.Render(fmt.Sprintf("⚽ %s - %s", teamName, player))
+		eventText = eventGoalStyle.Render(fmt.Sprintf("Goal: %s - %s", teamName, player))
 	case "card":
 		cardType := "Yellow"
 		if event.EventType != nil && *event.EventType == "red" {
@@ -300,7 +288,7 @@ func renderStatsEvent(event api.MatchEvent) string {
 			player = *event.Player
 		}
 		teamName := event.Team.ShortName
-		eventText = eventCardStyle.Render(fmt.Sprintf("🟨 %s - %s (%s)", teamName, player, cardType))
+		eventText = eventCardStyle.Render(fmt.Sprintf("Card (%s): %s - %s", cardType, teamName, player))
 	default:
 		eventText = eventTextStyle.Render(fmt.Sprintf("%s - %s", event.Team.ShortName, event.Type))
 	}
