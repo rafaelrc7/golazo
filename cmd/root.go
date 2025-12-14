@@ -9,12 +9,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var mockFlag bool
+
 var rootCmd = &cobra.Command{
 	Use:   "golazo",
 	Short: "Live football match updates in your terminal",
 	Long:  `A minimalistic TUI application that displays RSS feeds for football matches in the terminal.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p := tea.NewProgram(app.NewModel(), tea.WithAltScreen())
+		p := tea.NewProgram(app.NewModel(mockFlag), tea.WithAltScreen())
 		if _, err := p.Run(); err != nil {
 			fmt.Printf("Error running application: %v\n", err)
 			os.Exit(1)
@@ -30,5 +32,5 @@ func Execute() {
 }
 
 func init() {
-	// Add any global flags here
+	rootCmd.Flags().BoolVar(&mockFlag, "mock", false, "Use mock data for all views instead of real API data")
 }
