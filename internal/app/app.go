@@ -550,7 +550,7 @@ func fetchFinishedMatches(client *footballdata.Client, useMockData bool) tea.Cmd
 	}
 }
 
-// fetchStatsMatchDetails fetches match details from the Football-Data.org API.
+// fetchStatsMatchDetails fetches match details from the API-Sports.io API.
 // If useMockData is true, always uses mock data.
 // If useMockData is false, uses real API data (no fallback to mock data).
 func fetchStatsMatchDetails(client *footballdata.Client, matchID int, useMockData bool) tea.Cmd {
