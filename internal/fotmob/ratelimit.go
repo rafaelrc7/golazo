@@ -12,11 +12,12 @@ type RateLimiter struct {
 	minInterval     time.Duration
 }
 
-// NewRateLimiter creates a new rate limiter with conservative settings.
-// minInterval: minimum time between requests (default: 2 seconds)
+// NewRateLimiter creates a new rate limiter.
+// minInterval: minimum time between requests (no minimum enforced, use as specified)
 func NewRateLimiter(minInterval time.Duration) *RateLimiter {
-	if minInterval < 2*time.Second {
-		minInterval = 2 * time.Second // Conservative default
+	// Allow any interval, including very short ones for concurrent requests
+	if minInterval < 0 {
+		minInterval = 0 // Allow no delay if requested
 	}
 	return &RateLimiter{
 		minInterval: minInterval,

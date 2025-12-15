@@ -90,3 +90,30 @@ func (c *Client) UpcomingMatches(ctx context.Context) ([]api.Match, error) {
 
 	return upcomingMatches, nil
 }
+
+// MatchesForToday retrieves both finished and upcoming matches for today in a single call.
+// This is optimized for 1-day stats view to avoid duplicate API calls.
+// Returns finished matches and upcoming matches separately.
+func (c *Client) MatchesForToday(ctx context.Context) (finished []api.Match, upcoming []api.Match, err error) {
+	today := time.Now().UTC()
+	dateStr := today.Format("2006-01-02")
+
+	// Query all matches for today using MatchesByDate (single API call)
+	matches, err := c.MatchesByDate(ctx, today)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetch matches for date %s: %w", dateStr, err)
+	}
+
+	// Split matches into finished and upcoming
+	var finishedMatches []api.Match
+	var upcomingMatches []api.Match
+	for _, match := range matches {
+		if match.Status == api.MatchStatusFinished {
+			finishedMatches = append(finishedMatches, match)
+		} else if match.Status == api.MatchStatusNotStarted {
+			upcomingMatches = append(upcomingMatches, match)
+		}
+	}
+
+	return finishedMatches, upcomingMatches, nil
+}
