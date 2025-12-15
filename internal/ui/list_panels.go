@@ -34,7 +34,10 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string 
 
 // RenderStatsListPanel renders the left panel for stats view using bubbletea list component.
 // Note: listModel is passed by value, so SetSize must be called before this function.
-func RenderStatsListPanel(width, height int, listModel list.Model) string {
+func RenderStatsListPanel(width, height int, listModel list.Model, dateRange int) string {
+	// Render date range selector
+	dateSelector := renderDateRangeSelector(width-6, dateRange)
+
 	// Wrap list in panel
 	title := panelTitleStyle.Width(width - 6).Render(constants.PanelFinishedMatches)
 	listView := listModel.View()
@@ -42,6 +45,7 @@ func RenderStatsListPanel(width, height int, listModel list.Model) string {
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		title,
+		dateSelector,
 		"",
 		listView,
 	)
@@ -52,6 +56,43 @@ func RenderStatsListPanel(width, height int, listModel list.Model) string {
 		Render(content)
 
 	return panel
+}
+
+// renderDateRangeSelector renders a horizontal date range selector (1d, 3d, 7d).
+func renderDateRangeSelector(width int, selected int) string {
+	options := []struct {
+		days  int
+		label string
+	}{
+		{1, "1d"},
+		{3, "3d"},
+		{7, "7d"},
+	}
+
+	items := make([]string, 0, len(options))
+	for _, opt := range options {
+		if opt.days == selected {
+			// Selected option - use highlight color
+			item := matchListItemSelectedStyle.Render(opt.label)
+			items = append(items, item)
+		} else {
+			// Unselected option - use normal color
+			item := matchListItemStyle.Render(opt.label)
+			items = append(items, item)
+		}
+	}
+
+	// Join items with separator
+	separator := "  "
+	selector := strings.Join(items, separator)
+
+	// Center the selector
+	selectorStyle := lipgloss.NewStyle().
+		Width(width).
+		Align(lipgloss.Center).
+		Padding(0, 1)
+
+	return selectorStyle.Render(selector)
 }
 
 // RenderMultiPanelViewWithList renders the live matches view with list component.
@@ -143,7 +184,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 }
 
 // RenderStatsViewWithList renders the stats view with list component.
-func RenderStatsViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool) string {
+func RenderStatsViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int) string {
 	// Reserve 3 lines at top for spinner (always reserve to prevent layout shift)
 	spinnerHeight := 3
 	availableHeight := height - spinnerHeight
@@ -178,7 +219,7 @@ func RenderStatsViewWithList(width, height int, listModel list.Model, details *a
 	panelHeight := availableHeight - 2
 
 	// Render left panel (finished matches list) - shifted down
-	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, listModel)
+	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, listModel, dateRange)
 
 	// Render right panel (match stats) - shifted down
 	rightPanel := renderMatchStatsPanel(rightWidth, panelHeight, details)
