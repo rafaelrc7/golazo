@@ -45,6 +45,7 @@ type model struct {
 	polling            bool
 	liveMatchesList    list.Model
 	statsMatchesList   list.Model
+	statsDateRange     int // 1, 3, or 7 days (default: 1)
 }
 
 // NewModel creates a new application model with default values.
@@ -90,6 +91,7 @@ func NewModel(useMockData bool) model {
 		lastEvents:         []api.MatchEvent{},
 		liveMatchesList:    liveList,
 		statsMatchesList:   statsList,
+		statsDateRange:     1, // Default to 1 day
 	}
 }
 
@@ -240,7 +242,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		case viewStats:
-			// Delegate to list component
+			// Handle date range selector navigation first (left/right keys)
+			if msg.String() == "h" || msg.String() == "left" || msg.String() == "l" || msg.String() == "right" {
+				updatedM, cmd := m.handleStatsViewKeys(msg)
+				return updatedM, cmd
+			}
+			// Delegate other keys to list component
 			var cmd tea.Cmd
 			m.statsMatchesList, cmd = m.statsMatchesList.Update(msg)
 			// Get selected index from list
@@ -396,7 +403,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.currentView = viewStats
 			m.loading = true
-			return m, tea.Batch(m.spinner.Tick, m.randomSpinner.Init(), fetchFinishedMatches(m.footballDataClient, m.useMockData))
+			return m, tea.Batch(m.spinner.Tick, m.randomSpinner.Init(), fetchFinishedMatches(m.footballDataClient, m.useMockData, m.statsDateRange))
 		} else if msg.selection == 1 {
 			// Live Matches view
 			m.currentView = viewLiveMatches
@@ -483,24 +490,32 @@ func (m model) handleLiveMatchesKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m model) handleStatsViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "j", "down":
-		if m.selected < len(m.matches)-1 {
-			m.selected++
-			// Load details for newly selected match
-			if m.selected < len(m.matches) && m.footballDataClient != nil {
-				return m.loadStatsMatchDetails(m.matches[m.selected].ID)
-			}
+	case "h", "left":
+		// Navigate date range selector left (cycle backwards: 1 -> 7 -> 3 -> 1)
+		if m.statsDateRange == 1 {
+			m.statsDateRange = 7
+		} else if m.statsDateRange == 3 {
+			m.statsDateRange = 1
+		} else if m.statsDateRange == 7 {
+			m.statsDateRange = 3
 		}
-		return m, nil
-	case "k", "up":
-		if m.selected > 0 {
-			m.selected--
-			// Load details for newly selected match
-			if m.selected >= 0 && m.selected < len(m.matches) && m.footballDataClient != nil {
-				return m.loadStatsMatchDetails(m.matches[m.selected].ID)
-			}
+		// Reload matches with new date range
+		m.statsViewLoading = true
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick, m.randomSpinner.Init(), fetchFinishedMatches(m.footballDataClient, m.useMockData, m.statsDateRange))
+	case "l", "right":
+		// Navigate date range selector right (cycle forwards: 1 -> 3 -> 7 -> 1)
+		if m.statsDateRange == 1 {
+			m.statsDateRange = 3
+		} else if m.statsDateRange == 3 {
+			m.statsDateRange = 7
+		} else if m.statsDateRange == 7 {
+			m.statsDateRange = 1
 		}
-		return m, nil
+		// Reload matches with new date range
+		m.statsViewLoading = true
+		m.loading = true
+		return m, tea.Batch(m.spinner.Tick, m.randomSpinner.Init(), fetchFinishedMatches(m.footballDataClient, m.useMockData, m.statsDateRange))
 	}
 	return m, nil
 }
@@ -558,7 +573,7 @@ func (m model) View() string {
 				m.statsMatchesList.SetSize(availableWidth, availableHeight)
 			}
 		}
-		return ui.RenderStatsViewWithList(m.width, m.height, m.statsMatchesList, m.matchDetails, m.randomSpinner, m.statsViewLoading)
+		return ui.RenderStatsViewWithList(m.width, m.height, m.statsMatchesList, m.matchDetails, m.randomSpinner, m.statsViewLoading, m.statsDateRange)
 	default:
 		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading)
 	}
@@ -665,7 +680,8 @@ type finishedMatchesMsg struct {
 // fetchFinishedMatches fetches finished matches from the API-Sports.io API.
 // If useMockData is true, always uses mock data.
 // If useMockData is false, uses real API data (no fallback to mock data).
-func fetchFinishedMatches(client *footballdata.Client, useMockData bool) tea.Cmd {
+// days specifies how many days to fetch (1, 3, or 7).
+func fetchFinishedMatches(client *footballdata.Client, useMockData bool, days int) tea.Cmd {
 	return func() tea.Msg {
 		// Use mock data if flag is set
 		if useMockData {
@@ -681,8 +697,8 @@ func fetchFinishedMatches(client *footballdata.Client, useMockData bool) tea.Cmd
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		// Fetch matches from last 7 days
-		matches, err := client.RecentFinishedMatches(ctx, 7)
+		// Fetch matches from last N days
+		matches, err := client.RecentFinishedMatches(ctx, days)
 		if err != nil {
 			// Return empty on error when not using mock data
 			return finishedMatchesMsg{matches: []api.Match{}}
