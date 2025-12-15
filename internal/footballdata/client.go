@@ -110,12 +110,15 @@ func (c *Client) FinishedMatchesByDateRange(ctx context.Context, dateFrom, dateT
 	return allMatches, nil
 }
 
-// RecentFinishedMatches retrieves finished matches from today only.
-// Optimized to reduce API calls by querying only today's matches.
+// RecentFinishedMatches retrieves finished matches from the last N days.
+// Queries from today going back N-1 days (inclusive).
 func (c *Client) RecentFinishedMatches(ctx context.Context, days int) ([]api.Match, error) {
-	// Only query today's matches to optimize API calls
+	if days <= 0 {
+		days = 1 // Default to 1 day if invalid
+	}
 	today := time.Now()
-	return c.FinishedMatchesByDateRange(ctx, today, today)
+	dateFrom := today.AddDate(0, 0, -(days - 1)) // Go back (days-1) days to include today
+	return c.FinishedMatchesByDateRange(ctx, dateFrom, today)
 }
 
 // MatchesByDate retrieves all matches for a specific date.
