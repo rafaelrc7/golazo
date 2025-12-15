@@ -9,6 +9,9 @@
 
 # Golazo 
 
+> [!IMPORTANT]
+> Tool is in active development.
+
 A minimalist terminal user interface (TUI) for following football matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
 
 ## Installation
