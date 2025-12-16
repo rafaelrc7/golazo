@@ -16,21 +16,51 @@ const (
 )
 
 // Supported league IDs for match fetching
-// Limited to top 5 leagues to match stats view and optimize API calls
 var (
 	// SupportedLeagues contains the league IDs that will be queried for matches.
-	// FotMob league IDs (different from API-Sports.io IDs):
+	// FotMob league IDs:
+	//
+	//   Top 5 European Leagues:
 	//   - Premier League: 47
 	//   - La Liga: 87
 	//   - Bundesliga: 54
-	//   - Serie A: 55
+	//   - Serie A (Italy): 55
 	//   - Ligue 1: 53
+	//
+	//   European Competitions:
+	//   - UEFA Champions League: 42
+	//   - UEFA Europa League: 73
+	//   - UEFA Euro: 50
+	//
+	//   South America:
+	//   - Brasileirão Série A: 268
+	//   - Liga Profesional Argentina: 112
+	//   - Copa Libertadores: 14
+	//   - Copa America: 44
+	//
+	//   Other:
+	//   - MLS (USA): 130
+	//   - FIFA World Cup: 77
+	//
 	SupportedLeagues = []int{
+		// Top 5 European Leagues
 		47, // Premier League
 		87, // La Liga
 		54, // Bundesliga
-		55, // Serie A
+		55, // Serie A (Italy)
 		53, // Ligue 1
+		// European Competitions
+		42, // UEFA Champions League
+		73, // UEFA Europa League
+		50, // UEFA Euro
+		// South America
+		268, // Brasileirão Série A
+		112, // Liga Profesional Argentina
+		14,  // Copa Libertadores
+		44,  // Copa America
+		// Other
+		130, // MLS
+		77,  // FIFA World Cup
 	}
 )
 
