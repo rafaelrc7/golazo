@@ -311,6 +311,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, upcomin
 
 // renderStatsMatchDetailsPanel renders the right panel for stats view with match details.
 // Uses Neon design with Golazo red/cyan theme.
+// Displays expanded match information including statistics, lineups, and more.
 func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) string {
 	if details == nil {
 		emptyMessage := neonDimStyle.
@@ -338,17 +339,18 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 		awayTeam = details.AwayTeam.Name
 	}
 
-	// Header: Match Info
+	// ═══════════════════════════════════════════════
+	// MATCH HEADER
+	// ═══════════════════════════════════════════════
 	lines = append(lines, neonHeaderStyle.Render("Match Info"))
 	lines = append(lines, "")
 
-	// Score line - centered
+	// Score line - centered with large emphasis
 	var scoreDisplay string
 	if details.HomeScore != nil && details.AwayScore != nil {
-		scoreDisplay = fmt.Sprintf("%s  %d - %d  %s",
+		scoreDisplay = fmt.Sprintf("%s  %s  %s",
 			neonTeamStyle.Render(homeTeam),
-			*details.HomeScore,
-			*details.AwayScore,
+			neonScoreStyle.Render(fmt.Sprintf("%d - %d", *details.HomeScore, *details.AwayScore)),
 			neonTeamStyle.Render(awayTeam))
 	} else {
 		scoreDisplay = fmt.Sprintf("%s  vs  %s",
@@ -356,46 +358,47 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 			neonTeamStyle.Render(awayTeam))
 	}
 	lines = append(lines, lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Center).Render(scoreDisplay))
-	lines = append(lines, "")
 
-	// Status
-	var statusStr string
+	// Status + Half-time in one line
+	var statusLine string
 	switch details.Status {
 	case api.MatchStatusFinished:
-		statusStr = neonFinishedStyle.Render("FT")
+		statusLine = neonFinishedStyle.Render("FT")
 	case api.MatchStatusLive:
 		if details.LiveTime != nil {
-			statusStr = neonLiveStyle.Render(*details.LiveTime)
+			statusLine = neonLiveStyle.Render(*details.LiveTime)
 		} else {
-			statusStr = neonLiveStyle.Render("LIVE")
+			statusLine = neonLiveStyle.Render("LIVE")
 		}
 	default:
-		statusStr = neonDimStyle.Render(string(details.Status))
+		statusLine = neonDimStyle.Render(string(details.Status))
 	}
-	lines = append(lines, neonLabelStyle.Render("Status:      ")+statusStr)
+	if details.HalfTimeScore != nil && details.HalfTimeScore.Home != nil && details.HalfTimeScore.Away != nil {
+		statusLine += neonDimStyle.Render(fmt.Sprintf("  (HT: %d-%d)", *details.HalfTimeScore.Home, *details.HalfTimeScore.Away))
+	}
+	lines = append(lines, lipgloss.NewStyle().Width(contentWidth).Align(lipgloss.Center).Render(statusLine))
+	lines = append(lines, "")
 
-	// League
+	// Match context row
 	if details.League.Name != "" {
 		lines = append(lines, neonLabelStyle.Render("League:      ")+neonValueStyle.Render(details.League.Name))
 	}
-
-	// Venue
 	if details.Venue != "" {
-		lines = append(lines, neonLabelStyle.Render("Venue:       ")+neonValueStyle.Render(details.Venue))
+		lines = append(lines, neonLabelStyle.Render("Venue:       ")+neonValueStyle.Render(truncateString(details.Venue, contentWidth-14)))
 	}
-
-	// Date
 	if details.MatchTime != nil {
-		lines = append(lines, neonLabelStyle.Render("Date:        ")+neonValueStyle.Render(details.MatchTime.Format("02 Jan 2006")))
+		lines = append(lines, neonLabelStyle.Render("Date:        ")+neonValueStyle.Render(details.MatchTime.Format("02 Jan 2006, 15:04")))
+	}
+	if details.Referee != "" {
+		lines = append(lines, neonLabelStyle.Render("Referee:     ")+neonValueStyle.Render(details.Referee))
+	}
+	if details.Attendance > 0 {
+		lines = append(lines, neonLabelStyle.Render("Attendance:  ")+neonValueStyle.Render(formatNumber(details.Attendance)))
 	}
 
-	// Half-time score
-	if details.HalfTimeScore != nil && details.HalfTimeScore.Home != nil && details.HalfTimeScore.Away != nil {
-		htStr := fmt.Sprintf("%d - %d", *details.HalfTimeScore.Home, *details.HalfTimeScore.Away)
-		lines = append(lines, neonLabelStyle.Render("Half-Time:   ")+neonValueStyle.Render(htStr))
-	}
-
-	// Goals section
+	// ═══════════════════════════════════════════════
+	// GOALS TIMELINE
+	// ═══════════════════════════════════════════════
 	var homeGoals, awayGoals []api.MatchEvent
 	for _, event := range details.Events {
 		if event.Type == "goal" {
@@ -414,44 +417,122 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 		if len(homeGoals) > 0 {
 			lines = append(lines, neonTeamStyle.Render(homeTeam))
 			for _, g := range homeGoals {
-				player := "Unknown"
-				if g.Player != nil {
-					player = *g.Player
-				}
-				lines = append(lines, fmt.Sprintf("  %s %s", neonScoreStyle.Render(fmt.Sprintf("%d'", g.Minute)), neonValueStyle.Render(player)))
+				goalLine := renderGoalLine(g, contentWidth-2)
+				lines = append(lines, "  "+goalLine)
 			}
 		}
 
 		if len(awayGoals) > 0 {
 			lines = append(lines, neonTeamStyle.Render(awayTeam))
 			for _, g := range awayGoals {
-				player := "Unknown"
-				if g.Player != nil {
-					player = *g.Player
-				}
-				lines = append(lines, fmt.Sprintf("  %s %s", neonScoreStyle.Render(fmt.Sprintf("%d'", g.Minute)), neonValueStyle.Render(player)))
+				goalLine := renderGoalLine(g, contentWidth-2)
+				lines = append(lines, "  "+goalLine)
 			}
 		}
 	}
 
-	// Cards section
-	var yellowCards, redCards int
+	// ═══════════════════════════════════════════════
+	// CARDS SUMMARY
+	// ═══════════════════════════════════════════════
+	var homeYellow, awayYellow, homeRed, awayRed int
 	for _, event := range details.Events {
-		if event.Type == "yellowCard" {
-			yellowCards++
-		} else if event.Type == "redCard" {
-			redCards++
+		isHome := event.Team.ID == details.HomeTeam.ID
+		// Check for card events - FotMob uses lowercase "card" type
+		if event.Type == "card" {
+			if event.EventType != nil {
+				switch *event.EventType {
+				case "yellow", "yellowcard":
+					if isHome {
+						homeYellow++
+					} else {
+						awayYellow++
+					}
+				case "red", "redcard", "secondyellow":
+					if isHome {
+						homeRed++
+					} else {
+						awayRed++
+					}
+				}
+			}
 		}
 	}
 
-	if yellowCards > 0 || redCards > 0 {
+	if homeYellow > 0 || awayYellow > 0 || homeRed > 0 || awayRed > 0 {
 		lines = append(lines, "")
 		lines = append(lines, neonHeaderStyle.Render("Cards"))
-		if yellowCards > 0 {
-			lines = append(lines, fmt.Sprintf("  %s %s", neonTeamStyle.Render("Yellow:"), neonValueStyle.Render(fmt.Sprintf("%d", yellowCards))))
+
+		// Get short team names (3 chars max)
+		homeShort := homeTeam
+		if len(homeShort) > 3 {
+			homeShort = homeShort[:3]
 		}
-		if redCards > 0 {
-			lines = append(lines, fmt.Sprintf("  %s %s", neonLiveStyle.Render("Red:"), neonValueStyle.Render(fmt.Sprintf("%d", redCards))))
+		awayShort := awayTeam
+		if len(awayShort) > 3 {
+			awayShort = awayShort[:3]
+		}
+
+		cardLine := fmt.Sprintf("  Yellow: %s %d - %d %s",
+			neonDimStyle.Render(homeShort),
+			homeYellow,
+			awayYellow,
+			neonDimStyle.Render(awayShort))
+		lines = append(lines, neonTeamStyle.Render(cardLine))
+		if homeRed > 0 || awayRed > 0 {
+			redLine := fmt.Sprintf("  Red:    %s %d - %d %s",
+				neonDimStyle.Render(homeShort),
+				homeRed,
+				awayRed,
+				neonDimStyle.Render(awayShort))
+			lines = append(lines, neonLiveStyle.Render(redLine))
+		}
+	}
+
+	// ═══════════════════════════════════════════════
+	// MATCH STATISTICS
+	// ═══════════════════════════════════════════════
+	if len(details.Statistics) > 0 {
+		lines = append(lines, "")
+		lines = append(lines, neonHeaderStyle.Render("Statistics"))
+
+		// Priority labels/keys to show first (check both key and label)
+		priorityPatterns := []string{
+			"possession", "ball possession",
+			"expected_goals", "xg", "expected goals",
+			"total_shots", "shots", "total shots",
+			"shots_on_target", "on target", "shots on target",
+			"passes", "accurate passes",
+			"pass_accuracy", "pass accuracy", "passes %",
+		}
+		shownIndices := make(map[int]bool)
+
+		// Show priority stats first
+		for _, pattern := range priorityPatterns {
+			for i, stat := range details.Statistics {
+				if shownIndices[i] {
+					continue
+				}
+				keyLower := strings.ToLower(stat.Key)
+				labelLower := strings.ToLower(stat.Label)
+				if strings.Contains(keyLower, pattern) || strings.Contains(labelLower, pattern) {
+					statLine := renderStatLine(stat, contentWidth-2)
+					lines = append(lines, "  "+statLine)
+					shownIndices[i] = true
+					break
+				}
+			}
+		}
+
+		// Show remaining stats (limit to avoid overflow)
+		remaining := 0
+		maxRemaining := 6 // Show more stats if space allows
+		for i, stat := range details.Statistics {
+			if !shownIndices[i] && remaining < maxRemaining {
+				statLine := renderStatLine(stat, contentWidth-2)
+				lines = append(lines, "  "+statLine)
+				shownIndices[i] = true
+				remaining++
+			}
 		}
 	}
 
@@ -461,4 +542,77 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 		Width(width).
 		Height(height).
 		Render(content)
+}
+
+// renderGoalLine renders a single goal with scorer, minute, and assist
+func renderGoalLine(g api.MatchEvent, maxWidth int) string {
+	player := "Unknown"
+	if g.Player != nil {
+		player = *g.Player
+	}
+
+	minuteStr := neonScoreStyle.Render(fmt.Sprintf("%d'", g.Minute))
+	playerStr := neonValueStyle.Render(truncateString(player, maxWidth-10))
+
+	line := fmt.Sprintf("%s %s", minuteStr, playerStr)
+
+	// Add assist if available
+	if g.Assist != nil && *g.Assist != "" {
+		line += neonDimStyle.Render(fmt.Sprintf(" (%s)", truncateString(*g.Assist, 15)))
+	}
+
+	return line
+}
+
+// renderStatLine renders a single statistic comparing home vs away
+func renderStatLine(stat api.MatchStatistic, maxWidth int) string {
+	// Format: "Home Value | Label | Away Value"
+	labelWidth := 16
+	valueWidth := (maxWidth - labelWidth - 3) / 2
+
+	label := truncateString(stat.Label, labelWidth)
+	homeVal := truncateString(stat.HomeValue, valueWidth)
+	awayVal := truncateString(stat.AwayValue, valueWidth)
+
+	return fmt.Sprintf("%s %s %s",
+		neonValueStyle.Render(fmt.Sprintf("%*s", valueWidth, homeVal)),
+		neonDimStyle.Render(fmt.Sprintf("%-*s", labelWidth, label)),
+		neonValueStyle.Render(fmt.Sprintf("%-*s", valueWidth, awayVal)))
+}
+
+// truncateString truncates a string to maxLen, adding "..." if truncated
+func truncateString(s string, maxLen int) string {
+	if maxLen <= 3 {
+		return s
+	}
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
+// formatNumber formats a number with thousand separators
+func formatNumber(n int) string {
+	s := fmt.Sprintf("%d", n)
+	if n < 1000 {
+		return s
+	}
+
+	// Insert commas from right to left
+	result := ""
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			result += ","
+		}
+		result += string(c)
+	}
+	return result
+}
+
+// min returns the smaller of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
