@@ -1,62 +1,77 @@
 # League ID Reference
 
-This document tracks the league IDs used by different APIs in this application.
+This document tracks the league IDs used by the FotMob API in this application.
 
 ## Supported Leagues
 
-The application currently supports 5 major leagues:
-- Premier League (England)
-- La Liga (Spain)
-- Bundesliga (Germany)
-- Serie A (Italy)
-- Ligue 1 (France)
+The application currently supports **14 leagues/competitions**:
 
-## API-Specific League IDs
+### Top 5 European Leagues
+| League | Country | FotMob ID |
+|--------|---------|-----------|
+| Premier League | England | 47 |
+| La Liga | Spain | 87 |
+| Bundesliga | Germany | 54 |
+| Serie A | Italy | 55 |
+| Ligue 1 | France | 53 |
 
-### FotMob API
+### European Competitions
+| Competition | Type | FotMob ID |
+|-------------|------|-----------|
+| UEFA Champions League | Club | 42 |
+| UEFA Europa League | Club | 73 |
+| UEFA Euro | International | 50 |
+
+### South America
+| League/Competition | Country | FotMob ID |
+|--------------------|---------|-----------|
+| Brasileirão Série A | Brazil | 268 |
+| Liga Profesional | Argentina | 112 |
+| Copa Libertadores | International | 14 |
+| Copa America | International | 44 |
+
+### Other
+| League/Competition | Country | FotMob ID |
+|--------------------|---------|-----------|
+| MLS | USA | 130 |
+| FIFA World Cup | International | 77 |
+
+## FotMob API League IDs
+
 **Location:** `internal/fotmob/client.go`
 
 ```go
 SupportedLeagues = []int{
-    47, // Premier League
-    87, // La Liga
-    54, // Bundesliga
-    55, // Serie A
-    53, // Ligue 1
+    // Top 5 European Leagues
+    47,  // Premier League
+    87,  // La Liga
+    54,  // Bundesliga
+    55,  // Serie A (Italy)
+    53,  // Ligue 1
+    // European Competitions
+    42,  // UEFA Champions League
+    73,  // UEFA Europa League
+    50,  // UEFA Euro
+    // South America
+    268, // Brasileirão Série A
+    112, // Liga Profesional Argentina
+    14,  // Copa Libertadores
+    44,  // Copa America
+    // Other
+    130, // MLS
+    77,  // FIFA World Cup
 }
 ```
 
-**API Endpoint:** `https://www.fotmob.com/api/leagues?id={leagueID}&tab=fixtures`
+**API Endpoint:** `https://www.fotmob.com/api/leagues?id={leagueID}&tab={tab}`
 
-### API-Sports.io (Stats View)
-**Location:** `internal/footballdata/client.go`
-
-```go
-SupportedLeagues = []int{
-    39,  // Premier League
-    140, // La Liga
-    78,  // Bundesliga
-    135, // Serie A
-    61,  // Ligue 1
-}
-```
-
-**API Endpoint:** `https://v3.football.api-sports.io/fixtures?league={leagueID}&date={date}`
-
-## League ID Mapping
-
-| League | FotMob ID | API-Sports.io ID |
-|--------|-----------|------------------|
-| Premier League | 47 | 39 |
-| La Liga | 87 | 140 |
-| Bundesliga | 54 | 78 |
-| Serie A | 55 | 135 |
-| Ligue 1 | 53 | 61 |
+Where `tab` can be:
+- `fixtures` - Upcoming matches
+- `results` - Finished matches
 
 ## Notes
 
-- **FotMob** is used for the **Live Matches** view
-- **API-Sports.io** is used for the **Stats** view (finished matches)
-- League IDs are **different** between APIs - do not mix them up
-- When adding new leagues, update both files and this document
+- **FotMob** is used for both the **Live Matches** and **Stats** views
+- When adding new leagues, update `internal/fotmob/client.go` and this document
+- Tournament data (World Cup, Euro, Copa America) only available during competition periods
 

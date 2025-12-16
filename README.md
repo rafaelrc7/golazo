@@ -2,7 +2,7 @@
   <img src="assets/golazo-logo.png" alt="Golazo demo" width="600">
 </p>
 
-# Golazo 
+# Golazo
 
 > [!IMPORTANT]
 > Tool is in active development.
@@ -48,10 +48,3 @@ golazo
   ```bash
   golazo --mock
   ```
-
-### Environment Variables
-
-For the Stats view (finished matches), set your [API-football.com](https://www.api-football.com/) API key:
-```bash
-export FOOTBALL_DATA_API_KEY="your-api-key-here"
-```
