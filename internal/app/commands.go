@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/0xjuanma/golazo/internal/api"
@@ -38,60 +39,77 @@ func fetchLiveMatches(client *fotmob.Client, useMockData bool) tea.Cmd {
 	}
 }
 
-// fetchLiveLeagueData fetches live matches for a single league (progressive loading).
-// leagueIndex: 0 to TotalLeagues()-1
-// Results appear immediately as each league responds.
-func fetchLiveLeagueData(client *fotmob.Client, useMockData bool, leagueIndex int) tea.Cmd {
+// LiveBatchSize is the number of leagues to fetch concurrently in each batch.
+const LiveBatchSize = 4
+
+// fetchLiveBatchData fetches live matches for a batch of leagues concurrently.
+// batchIndex: 0, 1, 2, ... (each batch fetches LiveBatchSize leagues in parallel)
+// Results appear after each batch completes, giving progressive updates while being fast.
+func fetchLiveBatchData(client *fotmob.Client, useMockData bool, batchIndex int) tea.Cmd {
 	return func() tea.Msg {
 		totalLeagues := fotmob.TotalLeagues()
-		isLast := leagueIndex >= totalLeagues-1
-		leagueID := fotmob.LeagueIDAtIndex(leagueIndex)
+		startIdx := batchIndex * LiveBatchSize
+		endIdx := startIdx + LiveBatchSize
+		if endIdx > totalLeagues {
+			endIdx = totalLeagues
+		}
+		isLast := endIdx >= totalLeagues
 
 		if useMockData {
-			// Return mock data only on first league to simulate progressive load
-			if leagueIndex == 0 {
-				return liveLeagueDataMsg{
-					leagueIndex: leagueIndex,
-					leagueID:    leagueID,
-					isLast:      isLast,
-					matches:     data.MockLiveMatches(),
+			// Return mock data only on first batch
+			if batchIndex == 0 {
+				return liveBatchDataMsg{
+					batchIndex: batchIndex,
+					isLast:     isLast,
+					matches:    data.MockLiveMatches(),
 				}
 			}
-			return liveLeagueDataMsg{
-				leagueIndex: leagueIndex,
-				leagueID:    leagueID,
-				isLast:      isLast,
-				matches:     nil,
+			return liveBatchDataMsg{
+				batchIndex: batchIndex,
+				isLast:     isLast,
+				matches:    nil,
 			}
 		}
 
 		if client == nil {
-			return liveLeagueDataMsg{
-				leagueIndex: leagueIndex,
-				leagueID:    leagueID,
-				isLast:      isLast,
-				matches:     nil,
+			return liveBatchDataMsg{
+				batchIndex: batchIndex,
+				isLast:     isLast,
+				matches:    nil,
 			}
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		// Fetch all leagues in this batch concurrently
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		var allMatches []api.Match
 
-		matches, err := client.LiveMatchesForLeague(ctx, leagueID)
-		if err != nil {
-			return liveLeagueDataMsg{
-				leagueIndex: leagueIndex,
-				leagueID:    leagueID,
-				isLast:      isLast,
-				matches:     nil,
-			}
+		for i := startIdx; i < endIdx; i++ {
+			wg.Add(1)
+			go func(leagueIdx int) {
+				defer wg.Done()
+
+				leagueID := fotmob.LeagueIDAtIndex(leagueIdx)
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				matches, err := client.LiveMatchesForLeague(ctx, leagueID)
+				if err != nil || len(matches) == 0 {
+					return
+				}
+
+				mu.Lock()
+				allMatches = append(allMatches, matches...)
+				mu.Unlock()
+			}(i)
 		}
 
-		return liveLeagueDataMsg{
-			leagueIndex: leagueIndex,
-			leagueID:    leagueID,
-			isLast:      isLast,
-			matches:     matches,
+		wg.Wait()
+
+		return liveBatchDataMsg{
+			batchIndex: batchIndex,
+			isLast:     isLast,
+			matches:    allMatches,
 		}
 	}
 }

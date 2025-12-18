@@ -36,8 +36,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case liveRefreshMsg:
 		return m.handleLiveRefresh(msg)
 
-	case liveLeagueDataMsg:
-		return m.handleLiveLeagueData(msg)
+	case liveBatchDataMsg:
+		return m.handleLiveBatchData(msg)
 
 	case statsDataMsg:
 		return m.handleStatsData(msg)
@@ -363,18 +363,18 @@ func (m model) handleLiveRefresh(msg liveRefreshMsg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-// handleLiveLeagueData processes progressive loading - one league's data at a time.
-// Results are shown immediately as each league completes, giving instant feedback.
-func (m model) handleLiveLeagueData(msg liveLeagueDataMsg) (tea.Model, tea.Cmd) {
+// handleLiveBatchData processes parallel batch loading - multiple leagues at once.
+// Results are shown after each batch completes, giving progressive updates while being fast.
+func (m model) handleLiveBatchData(msg liveBatchDataMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
-	// Accumulate live matches
+	// Accumulate live matches from this batch
 	if len(msg.matches) > 0 {
 		m.liveMatchesBuffer = append(m.liveMatchesBuffer, msg.matches...)
 	}
 
 	// Track progress
-	m.liveLeaguesLoaded++
+	m.liveBatchesLoaded++
 
 	// Update UI immediately with current data
 	if len(m.liveMatchesBuffer) > 0 {
@@ -386,8 +386,8 @@ func (m model) handleLiveLeagueData(msg liveLeagueDataMsg) (tea.Model, tea.Cmd) 
 		m.liveMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
 		m.updateLiveListSize()
 
-		// On first league with matches, select first match and load details
-		if msg.leagueIndex == 0 || (len(msg.matches) > 0 && m.matchDetails == nil && len(m.matches) > 0) {
+		// On first batch with matches, select first match and load details
+		if msg.batchIndex == 0 || (len(msg.matches) > 0 && m.matchDetails == nil && len(m.matches) > 0) {
 			if m.selected == 0 && m.matchDetails == nil && len(m.matches) > 0 {
 				m.liveMatchesList.Select(0)
 				updatedModel, loadCmd := m.loadMatchDetails(m.matches[0].ID)
@@ -399,7 +399,7 @@ func (m model) handleLiveLeagueData(msg liveLeagueDataMsg) (tea.Model, tea.Cmd) 
 		}
 	}
 
-	// If last league, finalize loading
+	// If last batch, finalize loading
 	if msg.isLast {
 		m.liveViewLoading = false
 		m.loading = false
@@ -415,9 +415,9 @@ func (m model) handleLiveLeagueData(msg liveLeagueDataMsg) (tea.Model, tea.Cmd) 
 		return m, tea.Batch(cmds...)
 	}
 
-	// Otherwise, fetch next league
-	nextLeagueIndex := msg.leagueIndex + 1
-	cmds = append(cmds, fetchLiveLeagueData(m.fotmobClient, m.useMockData, nextLeagueIndex))
+	// Otherwise, fetch next batch
+	nextBatchIndex := msg.batchIndex + 1
+	cmds = append(cmds, fetchLiveBatchData(m.fotmobClient, m.useMockData, nextBatchIndex))
 
 	// Keep spinner running
 	cmds = append(cmds, ui.SpinnerTick())

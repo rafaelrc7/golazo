@@ -160,10 +160,10 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 	var spinnerArea string
 	if viewLoading && randomSpinner != nil {
 		spinnerView := randomSpinner.View()
-		// Add progress indicator during progressive loading
+		// Add progress indicator during progressive loading (batches of 4 leagues)
 		var progressText string
 		if totalLeagues > 0 && leaguesLoaded < totalLeagues {
-			progressText = fmt.Sprintf("  Scanning league %d/%d...", leaguesLoaded+1, totalLeagues)
+			progressText = fmt.Sprintf("  Scanning batch %d/%d...", leaguesLoaded+1, totalLeagues)
 		}
 		if spinnerView != "" {
 			// Center the spinner horizontally using style with width and alignment

@@ -19,8 +19,8 @@ func (m model) View() string {
 			m.loading,
 			m.randomSpinner,
 			m.liveViewLoading,
-			m.liveLeaguesLoaded,
-			m.liveTotalLeagues,
+			m.liveBatchesLoaded,
+			m.liveTotalBatches,
 		)
 
 	case viewStats:
@@ -103,4 +103,3 @@ func (m *model) ensureStatsSpinner() *ui.RandomCharSpinner {
 	}
 	return m.statsViewSpinner
 }
-

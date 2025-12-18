@@ -55,16 +55,17 @@ func (m model) handleMainViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, ui.SpinnerTick())
 			// Start fetching day 0 (today) first - results shown immediately when it completes
 			cmds = append(cmds, fetchStatsDayData(m.fotmobClient, m.useMockData, 0, fotmob.StatsDataDays))
-		case 1: // Live Matches view - preload live matches progressively
+		case 1: // Live Matches view - preload live matches progressively (parallel batches)
 			m.liveViewLoading = true
 			m.loading = true
-			m.liveLeaguesLoaded = 0
-			m.liveTotalLeagues = fotmob.TotalLeagues()
-			m.liveMatchesBuffer = nil // Clear buffer
+			m.liveBatchesLoaded = 0
+			totalLeagues := fotmob.TotalLeagues()
+			m.liveTotalBatches = (totalLeagues + LiveBatchSize - 1) / LiveBatchSize // Ceiling division
+			m.liveMatchesBuffer = nil                                               // Clear buffer
 			m.liveMatchesList.SetItems([]list.Item{})
 			cmds = append(cmds, ui.SpinnerTick())
-			// Start fetching league 0 first - results shown immediately when it completes
-			cmds = append(cmds, fetchLiveLeagueData(m.fotmobClient, m.useMockData, 0))
+			// Start fetching batch 0 (4 leagues in parallel) - results shown when batch completes
+			cmds = append(cmds, fetchLiveBatchData(m.fotmobClient, m.useMockData, 0))
 		}
 
 		return m, tea.Batch(cmds...)
