@@ -70,12 +70,21 @@ type Client struct {
 	baseURL     string
 	rateLimiter *RateLimiter
 	cache       *ResponseCache
+	emptyCache  *EmptyResultsCache // Persistent cache for empty league+date combinations
 }
 
 // NewClient creates a new FotMob API client with default configuration.
 // Includes minimal rate limiting (200ms between requests) for fast concurrent requests.
 // Uses default caching configuration for improved performance.
+// Initializes persistent empty results cache to skip known empty league+date combinations.
 func NewClient() *Client {
+	// Initialize empty results cache (logs error but doesn't fail)
+	emptyCache, err := NewEmptyResultsCache()
+	if err != nil {
+		// If we can't create the cache, create client without it
+		emptyCache = nil
+	}
+
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 15 * time.Second,
@@ -83,12 +92,30 @@ func NewClient() *Client {
 		baseURL:     baseURL,
 		rateLimiter: NewRateLimiter(200 * time.Millisecond), // Minimal delay for concurrent requests
 		cache:       NewResponseCache(DefaultCacheConfig()),
+		emptyCache:  emptyCache,
 	}
 }
 
 // GetCache returns the response cache for external access (e.g., pre-fetching).
 func (c *Client) GetCache() *ResponseCache {
 	return c.cache
+}
+
+// SaveEmptyCache persists the empty results cache to disk.
+// Should be called periodically or when the application exits.
+func (c *Client) SaveEmptyCache() error {
+	if c.emptyCache == nil {
+		return nil
+	}
+	return c.emptyCache.Save()
+}
+
+// GetEmptyCacheStats returns statistics about the empty results cache.
+func (c *Client) GetEmptyCacheStats() (total int, expired int) {
+	if c.emptyCache == nil {
+		return 0, 0
+	}
+	return c.emptyCache.Stats()
 }
 
 // MatchesByDate retrieves all matches for a specific date.
@@ -125,9 +152,19 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 	// This allows partial results even if some leagues are unavailable
 	var wg sync.WaitGroup
 
+	// Track skipped leagues for logging/debugging
+	var skippedFromCache int
+
 	// Query specified tabs
 	for _, tab := range tabs {
 		for _, leagueID := range SupportedLeagues {
+			// Check empty cache before spawning goroutine (for "results" tab only)
+			// Skip leagues known to have no matches on this date
+			if tab == "results" && c.emptyCache != nil && c.emptyCache.IsEmpty(requestDateStr, leagueID) {
+				skippedFromCache++
+				continue
+			}
+
 			wg.Add(1)
 			go func(id int, tabName string) {
 				defer wg.Done()
@@ -202,6 +239,12 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 					}
 				}
 
+				// Mark league+date as empty if no matches found (for results tab only)
+				// This will be persisted to avoid future API calls
+				if len(leagueMatches) == 0 && tabName == "results" && c.emptyCache != nil {
+					c.emptyCache.MarkEmpty(requestDateStr, id)
+				}
+
 				// Append to shared slice with mutex protection
 				mu.Lock()
 				allMatches = append(allMatches, leagueMatches...)
@@ -210,10 +253,16 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 		}
 	}
 
+	// Variable is used below (prevents unused variable error)
+	_ = skippedFromCache
+
 	wg.Wait()
 
 	// Cache the results before returning
 	c.cache.SetMatches(requestDateStr, allMatches)
+
+	// Persist empty results cache to disk (async, best-effort)
+	go c.SaveEmptyCache()
 
 	return allMatches, nil
 }
