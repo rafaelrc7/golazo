@@ -41,9 +41,14 @@ type model struct {
 	// Stats data cache - stores 5 days of data, filtered client-side for Today/3d/5d views
 	statsData *fotmob.StatsData
 
-	// Progressive loading state
+	// Progressive loading state (stats view)
 	statsDaysLoaded int // Number of days loaded so far (0-5)
 	statsTotalDays  int // Total days to load (5)
+
+	// Progressive loading state (live view)
+	liveLeaguesLoaded int           // Number of leagues loaded so far
+	liveTotalLeagues  int           // Total leagues to load
+	liveMatchesBuffer []api.Match   // Buffer to accumulate live matches during progressive load
 
 	// UI components
 	spinner          spinner.Model

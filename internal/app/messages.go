@@ -25,6 +25,15 @@ type liveRefreshMsg struct {
 	matches []api.Match
 }
 
+// liveLeagueDataMsg contains live matches for a single league (progressive loading).
+// Sent as each league's API call completes, allowing immediate UI updates.
+type liveLeagueDataMsg struct {
+	leagueIndex int         // Index in SupportedLeagues array
+	leagueID    int         // League ID
+	isLast      bool        // true if this is the last league to fetch
+	matches     []api.Match // live matches for this league
+}
+
 // statsDataMsg contains all stats data (5 days finished + today upcoming) from API response.
 // This is the unified message for stats view - always fetches 5 days, filters client-side.
 type statsDataMsg struct {

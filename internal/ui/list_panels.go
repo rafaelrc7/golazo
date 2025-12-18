@@ -139,7 +139,8 @@ func renderDateRangeSelector(width int, selected int) string {
 }
 
 // RenderMultiPanelViewWithList renders the live matches view with list component.
-func RenderMultiPanelViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, liveUpdates []string, sp spinner.Model, loading bool, randomSpinner *RandomCharSpinner, viewLoading bool) string {
+// leaguesLoaded and totalLeagues show loading progress during progressive loading.
+func RenderMultiPanelViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, liveUpdates []string, sp spinner.Model, loading bool, randomSpinner *RandomCharSpinner, viewLoading bool, leaguesLoaded int, totalLeagues int) string {
 	// Handle edge case: if width/height not set, use defaults
 	if width <= 0 {
 		width = 80
@@ -159,6 +160,11 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 	var spinnerArea string
 	if viewLoading && randomSpinner != nil {
 		spinnerView := randomSpinner.View()
+		// Add progress indicator during progressive loading
+		var progressText string
+		if totalLeagues > 0 && leaguesLoaded < totalLeagues {
+			progressText = fmt.Sprintf("  Scanning league %d/%d...", leaguesLoaded+1, totalLeagues)
+		}
 		if spinnerView != "" {
 			// Center the spinner horizontally using style with width and alignment
 			spinnerStyle := lipgloss.NewStyle().
@@ -166,7 +172,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 				Height(spinnerHeight).
 				Align(lipgloss.Center).
 				AlignVertical(lipgloss.Center)
-			spinnerArea = spinnerStyle.Render(spinnerView)
+			spinnerArea = spinnerStyle.Render(spinnerView + progressText)
 		} else {
 			// Fallback if spinner view is empty
 			spinnerStyle := lipgloss.NewStyle().
@@ -174,7 +180,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 				Height(spinnerHeight).
 				Align(lipgloss.Center).
 				AlignVertical(lipgloss.Center)
-			spinnerArea = spinnerStyle.Render("Loading...")
+			spinnerArea = spinnerStyle.Render("Loading..." + progressText)
 		}
 	} else {
 		// Reserve space with empty lines - ensure it takes up exactly spinnerHeight lines

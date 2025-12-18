@@ -13,8 +13,9 @@ import (
 // LiveRefreshInterval is the interval between automatic live matches list refreshes.
 const LiveRefreshInterval = 5 * time.Minute
 
-// fetchLiveMatches fetches live matches from the API.
+// fetchLiveMatches fetches live matches from the API (used for cache check only now).
 // Returns mock data if useMockData is true, otherwise uses real API.
+// NOTE: For initial load, use fetchLiveLeagueData for progressive loading.
 func fetchLiveMatches(client *fotmob.Client, useMockData bool) tea.Cmd {
 	return func() tea.Msg {
 		if useMockData {
@@ -34,6 +35,64 @@ func fetchLiveMatches(client *fotmob.Client, useMockData bool) tea.Cmd {
 		}
 
 		return liveMatchesMsg{matches: matches}
+	}
+}
+
+// fetchLiveLeagueData fetches live matches for a single league (progressive loading).
+// leagueIndex: 0 to TotalLeagues()-1
+// Results appear immediately as each league responds.
+func fetchLiveLeagueData(client *fotmob.Client, useMockData bool, leagueIndex int) tea.Cmd {
+	return func() tea.Msg {
+		totalLeagues := fotmob.TotalLeagues()
+		isLast := leagueIndex >= totalLeagues-1
+		leagueID := fotmob.LeagueIDAtIndex(leagueIndex)
+
+		if useMockData {
+			// Return mock data only on first league to simulate progressive load
+			if leagueIndex == 0 {
+				return liveLeagueDataMsg{
+					leagueIndex: leagueIndex,
+					leagueID:    leagueID,
+					isLast:      isLast,
+					matches:     data.MockLiveMatches(),
+				}
+			}
+			return liveLeagueDataMsg{
+				leagueIndex: leagueIndex,
+				leagueID:    leagueID,
+				isLast:      isLast,
+				matches:     nil,
+			}
+		}
+
+		if client == nil {
+			return liveLeagueDataMsg{
+				leagueIndex: leagueIndex,
+				leagueID:    leagueID,
+				isLast:      isLast,
+				matches:     nil,
+			}
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		matches, err := client.LiveMatchesForLeague(ctx, leagueID)
+		if err != nil {
+			return liveLeagueDataMsg{
+				leagueIndex: leagueIndex,
+				leagueID:    leagueID,
+				isLast:      isLast,
+				matches:     nil,
+			}
+		}
+
+		return liveLeagueDataMsg{
+			leagueIndex: leagueIndex,
+			leagueID:    leagueID,
+			isLast:      isLast,
+			matches:     matches,
+		}
 	}
 }
 

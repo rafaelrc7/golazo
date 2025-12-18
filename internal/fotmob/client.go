@@ -267,6 +267,75 @@ func (c *Client) MatchesByDateWithTabs(ctx context.Context, date time.Time, tabs
 	return allMatches, nil
 }
 
+// MatchesForLeagueAndDate fetches matches for a single league on a specific date.
+// Used for progressive loading - allows fetching one league at a time.
+func (c *Client) MatchesForLeagueAndDate(ctx context.Context, leagueID int, date time.Time, tab string) ([]api.Match, error) {
+	requestDateStr := date.UTC().Format("2006-01-02")
+
+	// Apply rate limiting
+	c.rateLimiter.Wait()
+
+	url := fmt.Sprintf("%s/leagues?id=%d&tab=%s", c.baseURL, leagueID, tab)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request for league %d: %w", leagueID, err)
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch league %d: %w", leagueID, err)
+	}
+	defer resp.Body.Close()
+
+	var leagueResponse struct {
+		Details struct {
+			ID          int    `json:"id"`
+			Name        string `json:"name"`
+			Country     string `json:"country"`
+			CountryCode string `json:"countryCode,omitempty"`
+		} `json:"details"`
+		Fixtures struct {
+			AllMatches []fotmobMatch `json:"allMatches"`
+		} `json:"fixtures"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&leagueResponse); err != nil {
+		return nil, fmt.Errorf("decode league %d response: %w", leagueID, err)
+	}
+
+	// Filter matches for the requested date
+	var matches []api.Match
+	for _, m := range leagueResponse.Fixtures.AllMatches {
+		if m.Status.UTCTime != "" {
+			var matchTime time.Time
+			var parseErr error
+			matchTime, parseErr = time.Parse(time.RFC3339, m.Status.UTCTime)
+			if parseErr != nil {
+				matchTime, parseErr = time.Parse("2006-01-02T15:04:05.000Z", m.Status.UTCTime)
+			}
+			if parseErr == nil {
+				matchDateStr := matchTime.UTC().Format("2006-01-02")
+				if matchDateStr == requestDateStr {
+					if m.League.ID == 0 {
+						m.League = league{
+							ID:          leagueResponse.Details.ID,
+							Name:        leagueResponse.Details.Name,
+							Country:     leagueResponse.Details.Country,
+							CountryCode: leagueResponse.Details.CountryCode,
+						}
+					}
+					matches = append(matches, m.toAPIMatch())
+				}
+			}
+		}
+	}
+
+	return matches, nil
+}
+
 // MatchDetails retrieves detailed information about a specific match.
 // Results are cached to avoid redundant API calls.
 func (c *Client) MatchDetails(ctx context.Context, matchID int) (*api.MatchDetails, error) {

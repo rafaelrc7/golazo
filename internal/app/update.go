@@ -36,6 +36,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case liveRefreshMsg:
 		return m.handleLiveRefresh(msg)
 
+	case liveLeagueDataMsg:
+		return m.handleLiveLeagueData(msg)
+
 	case statsDataMsg:
 		return m.handleStatsData(msg)
 
@@ -356,6 +359,68 @@ func (m model) handleLiveRefresh(msg liveRefreshMsg) (tea.Model, tea.Cmd) {
 	}
 	m.selected = newSelected
 	m.liveMatchesList.Select(newSelected)
+
+	return m, tea.Batch(cmds...)
+}
+
+// handleLiveLeagueData processes progressive loading - one league's data at a time.
+// Results are shown immediately as each league completes, giving instant feedback.
+func (m model) handleLiveLeagueData(msg liveLeagueDataMsg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+
+	// Accumulate live matches
+	if len(msg.matches) > 0 {
+		m.liveMatchesBuffer = append(m.liveMatchesBuffer, msg.matches...)
+	}
+
+	// Track progress
+	m.liveLeaguesLoaded++
+
+	// Update UI immediately with current data
+	if len(m.liveMatchesBuffer) > 0 {
+		displayMatches := make([]ui.MatchDisplay, 0, len(m.liveMatchesBuffer))
+		for _, match := range m.liveMatchesBuffer {
+			displayMatches = append(displayMatches, ui.MatchDisplay{Match: match})
+		}
+		m.matches = displayMatches
+		m.liveMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
+		m.updateLiveListSize()
+
+		// On first league with matches, select first match and load details
+		if msg.leagueIndex == 0 || (len(msg.matches) > 0 && m.matchDetails == nil && len(m.matches) > 0) {
+			if m.selected == 0 && m.matchDetails == nil && len(m.matches) > 0 {
+				m.liveMatchesList.Select(0)
+				updatedModel, loadCmd := m.loadMatchDetails(m.matches[0].ID)
+				if updatedM, ok := updatedModel.(model); ok {
+					m = updatedM
+				}
+				cmds = append(cmds, loadCmd)
+			}
+		}
+	}
+
+	// If last league, finalize loading
+	if msg.isLast {
+		m.liveViewLoading = false
+		m.loading = false
+
+		// Cache the final result
+		if m.fotmobClient != nil && len(m.liveMatchesBuffer) > 0 {
+			m.fotmobClient.GetCache().SetLiveMatches(m.liveMatchesBuffer)
+		}
+
+		// Schedule periodic refresh
+		cmds = append(cmds, scheduleLiveRefresh(m.fotmobClient, m.useMockData))
+
+		return m, tea.Batch(cmds...)
+	}
+
+	// Otherwise, fetch next league
+	nextLeagueIndex := msg.leagueIndex + 1
+	cmds = append(cmds, fetchLiveLeagueData(m.fotmobClient, m.useMockData, nextLeagueIndex))
+
+	// Keep spinner running
+	cmds = append(cmds, ui.SpinnerTick())
 
 	return m, tea.Batch(cmds...)
 }

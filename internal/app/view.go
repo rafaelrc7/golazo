@@ -19,6 +19,8 @@ func (m model) View() string {
 			m.loading,
 			m.randomSpinner,
 			m.liveViewLoading,
+			m.liveLeaguesLoaded,
+			m.liveTotalLeagues,
 		)
 
 	case viewStats:

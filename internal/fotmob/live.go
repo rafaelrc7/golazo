@@ -49,6 +49,46 @@ func (c *Client) LiveMatchesForceRefresh(ctx context.Context) ([]api.Match, erro
 	return c.LiveMatches(ctx)
 }
 
+// LiveMatchesForLeague fetches live matches for a single league.
+// Used for progressive loading - results appear as each league responds.
+func (c *Client) LiveMatchesForLeague(ctx context.Context, leagueID int) ([]api.Match, error) {
+	today := time.Now()
+	dateStr := today.Format("2006-01-02")
+
+	// Fetch from API for this specific league
+	matches, err := c.MatchesForLeagueAndDate(ctx, leagueID, today, "fixtures")
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter for live matches only
+	var liveMatches []api.Match
+	for _, match := range matches {
+		// Verify match is for today and is live
+		if match.MatchTime != nil {
+			matchDate := match.MatchTime.UTC().Format("2006-01-02")
+			if matchDate == dateStr && match.Status == api.MatchStatusLive {
+				liveMatches = append(liveMatches, match)
+			}
+		}
+	}
+
+	return liveMatches, nil
+}
+
+// TotalLeagues returns the number of supported leagues.
+func TotalLeagues() int {
+	return len(SupportedLeagues)
+}
+
+// LeagueIDAtIndex returns the league ID at the given index.
+func LeagueIDAtIndex(index int) int {
+	if index < 0 || index >= len(SupportedLeagues) {
+		return 0
+	}
+	return SupportedLeagues[index]
+}
+
 // LiveUpdateParser parses match events into live update strings.
 type LiveUpdateParser struct{}
 
