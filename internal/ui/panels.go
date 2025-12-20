@@ -683,11 +683,11 @@ func renderStyledLiveUpdate(update string) string {
 	switch symbol {
 	case "●": // Goal - gradient on [GOAL] label, white text for rest
 		return renderGoalWithGradient(update)
-	case "▪": // Yellow card - yellow color for entire line
+	case "▪": // Yellow card - yellow up to [CARD], white for rest
 		neonYellow := lipgloss.Color("226") // Bright yellow
-		return lipgloss.NewStyle().Foreground(neonYellow).Render(update)
-	case "■": // Red card - red color for entire line
-		return lipgloss.NewStyle().Foreground(neonRed).Bold(true).Render(update)
+		return renderCardWithColor(update, neonYellow)
+	case "■": // Red card - red up to [CARD], white for rest
+		return renderCardWithColor(update, neonRed)
 	case "↔": // Substitution - dim symbol and text
 		symbolStyle := lipgloss.NewStyle().Foreground(neonDim)
 		textStyle := lipgloss.NewStyle().Foreground(neonDim)
@@ -700,6 +700,28 @@ func renderStyledLiveUpdate(update string) string {
 		// Unknown prefix, render as-is with default style
 		return lipgloss.NewStyle().Foreground(neonWhite).Render(update)
 	}
+}
+
+// renderCardWithColor renders a card event with color on symbol, time, and [CARD] label.
+// The rest of the text (player, team) is rendered in white.
+func renderCardWithColor(update string, color lipgloss.Color) string {
+	neonWhite := lipgloss.Color("255")
+	colorStyle := lipgloss.NewStyle().Foreground(color).Bold(true)
+	whiteStyle := lipgloss.NewStyle().Foreground(neonWhite)
+
+	// Find [CARD] in the string
+	cardEnd := strings.Index(update, "[CARD]")
+	if cardEnd == -1 {
+		// No [CARD] found, color entire line
+		return colorStyle.Render(update)
+	}
+	cardEnd += len("[CARD]")
+
+	// Split: colored prefix (symbol + time + [CARD]) and white suffix (player + team)
+	prefix := update[:cardEnd]
+	suffix := update[cardEnd:]
+
+	return colorStyle.Render(prefix) + whiteStyle.Render(suffix)
 }
 
 // renderGoalWithGradient renders a goal event with gradient on the [GOAL] label.
