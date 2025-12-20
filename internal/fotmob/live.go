@@ -164,10 +164,12 @@ func (p *LiveUpdateParser) formatEvent(event api.MatchEvent, homeTeam, awayTeam 
 			cardType = strings.ToLower(*event.EventType)
 		}
 		prefix := EventPrefixYellowCard
+		label := "[YELLOW]"
 		if cardType == "red" || cardType == "redcard" || cardType == "secondyellow" {
 			prefix = EventPrefixRedCard
+			label = "[RED]"
 		}
-		return fmt.Sprintf("%s %d' [CARD] %s - %s", prefix, event.Minute, player, teamName)
+		return fmt.Sprintf("%s %d' %s %s - %s", prefix, event.Minute, label, player, teamName)
 
 	case "substitution":
 		player := "Unknown"
