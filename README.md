@@ -13,12 +13,14 @@
 A minimalist terminal user interface (TUI) for following football matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
 </div>
 
+<div align="center">
+  <img src="assets/golazo-ss.png" alt="Golazo screenshot" width="600">
+</div>
+
+## Installation/Update
 
 > [!IMPORTANT]
 > Tool is in active development.
-
-
-## Installation/Update
 
 ### Using the install script (recommended)
 
