@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Windows Support** - Added Windows builds (amd64, arm64) and PowerShell install script
 
 ### Changed
+- **Cards Section Redesign** - Cards now display detailed list with player name, minute, and team instead of just counts
 
 ### Fixed
 
