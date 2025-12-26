@@ -4,6 +4,7 @@ package app
 import (
 	"github.com/0xjuanma/golazo/internal/api"
 	"github.com/0xjuanma/golazo/internal/fotmob"
+	"github.com/0xjuanma/golazo/internal/notify"
 	"github.com/0xjuanma/golazo/internal/ui"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
@@ -80,6 +81,9 @@ type model struct {
 	// API clients
 	fotmobClient *fotmob.Client
 	parser       *fotmob.LiveUpdateParser
+
+	// Notifications
+	notifier *notify.DesktopNotifier
 }
 
 // New creates a new application model with default values.
@@ -141,6 +145,7 @@ func New(useMockData bool) model {
 		useMockData:         useMockData,
 		fotmobClient:        fotmob.NewClient(),
 		parser:              fotmob.NewLiveUpdateParser(),
+		notifier:            notify.NewDesktopNotifier(),
 		spinner:             s,
 		randomSpinner:       randomSpinner,
 		statsViewSpinner:    statsViewSpinner,

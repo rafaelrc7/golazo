@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"time"
 
 	"github.com/0xjuanma/golazo/internal/api"
@@ -176,6 +177,12 @@ func (m model) handleMatchDetails(msg matchDetailsMsg) (tea.Model, tea.Cmd) {
 	// Handle live matches view (including during preload)
 	if m.currentView == viewLiveMatches || m.pendingSelection == 1 {
 		m.liveViewLoading = false
+
+		// Detect new goals during poll refresh (not initial load)
+		// Only notify when: polling is active AND we have previous events to compare
+		if m.polling && len(m.lastEvents) > 0 {
+			m.notifyNewGoals(msg.details)
+		}
 
 		// Parse ALL events to rebuild the live updates list
 		// This ensures proper ordering (descending by minute) and uniqueness
@@ -865,6 +872,36 @@ func (m model) handleFilterMatches(msg list.FilterMatchesMsg) (tea.Model, tea.Cm
 	}
 
 	return m, cmd
+}
+
+// notifyNewGoals sends desktop notifications for new goal events.
+// Only called during poll refreshes when comparing against previous events.
+// Errors are silently ignored to avoid disrupting the main application flow.
+func (m *model) notifyNewGoals(details *api.MatchDetails) {
+	if m.notifier == nil || details == nil {
+		return
+	}
+
+	// Find events that are new since the last poll
+	newEvents := m.parser.NewEvents(m.lastEvents, details.Events)
+
+	// Get current score for notification
+	homeScore := 0
+	awayScore := 0
+	if details.HomeScore != nil {
+		homeScore = *details.HomeScore
+	}
+	if details.AwayScore != nil {
+		awayScore = *details.AwayScore
+	}
+
+	// Notify for each new goal
+	for _, event := range newEvents {
+		if strings.ToLower(event.Type) == "goal" {
+			// Send notification - errors are ignored to not disrupt the app
+			_ = m.notifier.Goal(event, details.HomeTeam, details.AwayTeam, homeScore, awayScore)
+		}
+	}
 }
 
 // max returns the larger of two integers.
