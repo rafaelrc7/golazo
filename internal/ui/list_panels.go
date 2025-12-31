@@ -16,23 +16,79 @@ import (
 // RenderLiveMatchesListPanel renders the left panel using bubbletea list component.
 // Note: listModel is passed by value, so SetSize must be called before this function.
 // Uses Neon design with Golazo red/cyan theme.
-func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string {
+// upcomingMatches are displayed at the bottom of the panel (fixed, not scrollable).
+func RenderLiveMatchesListPanel(width, height int, listModel list.Model, upcomingMatches []MatchDisplay) string {
+	contentWidth := width - 6 // Account for border and padding
+
 	// Wrap list in panel with neon styling
-	title := neonPanelTitleStyle.Width(width - 6).Render(constants.PanelLiveMatches)
+	title := neonPanelTitleStyle.Width(contentWidth).Render(constants.PanelLiveMatches)
 	listView := listModel.View()
 
-	content := lipgloss.JoinVertical(
-		lipgloss.Left,
-		title,
-		"",
-		listView,
-	)
+	// Calculate available inner height (minus borders)
+	borderHeight := 2
+	titleHeight := 2
+	innerHeight := height - borderHeight - titleHeight
+
+	// Build upcoming section if there are upcoming matches
+	var upcomingSection string
+	upcomingHeight := 0
+	if len(upcomingMatches) > 0 {
+		// Split 50-50 between live matches and upcoming
+		maxUpcomingHeight := innerHeight / 2
+
+		// Render upcoming section header
+		upcomingTitle := neonHeaderStyle.Render("Upcoming")
+
+		// Render upcoming matches as simple text (not selectable)
+		var upcomingLines []string
+		upcomingLines = append(upcomingLines, upcomingTitle)
+		for _, match := range upcomingMatches {
+			matchLine := renderUpcomingMatchLine(match, contentWidth)
+			upcomingLines = append(upcomingLines, matchLine)
+		}
+		upcomingSection = strings.Join(upcomingLines, "\n")
+
+		// Truncate upcoming section if it exceeds max height
+		upcomingHeight = len(upcomingLines) + 1 // +1 for separator
+		if upcomingHeight > maxUpcomingHeight {
+			upcomingSection = truncateToHeight(upcomingSection, maxUpcomingHeight)
+			upcomingHeight = maxUpcomingHeight
+		}
+	}
+
+	// Calculate available height for the live list
+	availableListHeight := innerHeight - upcomingHeight - 1 // -1 for separator
+	if availableListHeight < 3 {
+		availableListHeight = 3 // Minimum height for list
+	}
+
+	// Truncate list view to fit
+	listView = truncateToHeight(listView, availableListHeight)
+
+	// Build content
+	var content string
+	if upcomingHeight > 0 {
+		content = lipgloss.JoinVertical(
+			lipgloss.Left,
+			title,
+			"",
+			listView,
+			"",
+			upcomingSection,
+		)
+	} else {
+		content = lipgloss.JoinVertical(
+			lipgloss.Left,
+			title,
+			"",
+			listView,
+		)
+	}
 
 	// Truncate inner content before applying border to preserve border rendering
-	// neonPanelStyle has 2 lines for border (top + bottom), so inner height = height - 2
-	innerHeight := height - 2
-	if innerHeight > 0 {
-		content = truncateToHeight(content, innerHeight)
+	totalInnerHeight := height - 2
+	if totalInnerHeight > 0 {
+		content = truncateToHeight(content, totalInnerHeight)
 	}
 
 	panel := neonPanelStyle.
@@ -43,12 +99,49 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model) string 
 	return panel
 }
 
+// renderUpcomingMatchLine renders a single upcoming match as a simple text line.
+func renderUpcomingMatchLine(match MatchDisplay, maxWidth int) string {
+	// Format: "  HH:MM  Team A vs Team B"
+	var timeStr string
+	if match.MatchTime != nil {
+		timeStr = match.MatchTime.Local().Format("15:04")
+	} else {
+		timeStr = "--:--"
+	}
+
+	homeTeam := match.HomeTeam.ShortName
+	if homeTeam == "" {
+		homeTeam = match.HomeTeam.Name
+	}
+	awayTeam := match.AwayTeam.ShortName
+	if awayTeam == "" {
+		awayTeam = match.AwayTeam.Name
+	}
+
+	// Truncate team names if too long
+	maxTeamLen := (maxWidth - 15) / 2 // 15 = time(5) + " vs "(4) + padding(6)
+	if len(homeTeam) > maxTeamLen {
+		homeTeam = homeTeam[:maxTeamLen-1] + "…"
+	}
+	if len(awayTeam) > maxTeamLen {
+		awayTeam = awayTeam[:maxTeamLen-1] + "…"
+	}
+
+	timeStyle := neonDimStyle
+	teamStyle := neonValueStyle
+
+	return fmt.Sprintf("  %s  %s vs %s",
+		timeStyle.Render(timeStr),
+		teamStyle.Render(homeTeam),
+		teamStyle.Render(awayTeam))
+}
+
 // RenderStatsListPanel renders the left panel for stats view using bubbletea list component.
 // Note: listModel is passed by value, so SetSize must be called before this function.
 // Uses Neon design with Golazo red/cyan theme.
 // List titles are only shown when there are items. Empty lists show gray messages instead.
-// For 1-day view, shows both finished and upcoming lists stacked vertically.
-func RenderStatsListPanel(width, height int, finishedList list.Model, upcomingList list.Model, dateRange int) string {
+// Upcoming matches are now shown in the Live view instead.
+func RenderStatsListPanel(width, height int, finishedList list.Model, dateRange int) string {
 	// Render date range selector with neon styling
 	dateSelector := renderDateRangeSelector(width-6, dateRange)
 
@@ -64,42 +157,7 @@ func RenderStatsListPanel(width, height int, finishedList list.Model, upcomingLi
 		finishedListView = finishedList.View()
 	}
 
-	// For 1-day view, show both lists stacked vertically
-	if dateRange == 1 {
-		var upcomingListView string
-		upcomingItems := upcomingList.Items()
-		if len(upcomingItems) == 0 {
-			// No upcoming matches - show empty message, no list title
-			upcomingListView = emptyStyle.Render("No upcoming matches scheduled for today")
-		} else {
-			// Has items - show list (which includes its title)
-			upcomingListView = upcomingList.View()
-		}
-
-		// Combine both lists with date selector
-		content := lipgloss.JoinVertical(
-			lipgloss.Left,
-			dateSelector,
-			"",
-			finishedListView,
-			"",
-			upcomingListView,
-		)
-
-		// Truncate inner content before applying border to preserve border rendering
-		innerHeight := height - 2
-		if innerHeight > 0 {
-			content = truncateToHeight(content, innerHeight)
-		}
-
-		panel := neonPanelStyle.
-			Width(width).
-			Height(height).
-			Render(content)
-		return panel
-	}
-
-	// For 3-day view, only show finished matches
+	// Show finished matches with date selector
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
 		dateSelector,
@@ -161,7 +219,8 @@ func renderDateRangeSelector(width int, selected int) string {
 // RenderMultiPanelViewWithList renders the live matches view with list component.
 // leaguesLoaded and totalLeagues show loading progress during progressive loading.
 // pollingSpinner and isPolling control the small polling indicator in the right panel.
-func RenderMultiPanelViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, liveUpdates []string, sp spinner.Model, loading bool, randomSpinner *RandomCharSpinner, viewLoading bool, leaguesLoaded int, totalLeagues int, pollingSpinner *RandomCharSpinner, isPolling bool) string {
+// upcomingMatches are displayed at the bottom of the left panel (fixed, not scrollable).
+func RenderMultiPanelViewWithList(width, height int, listModel list.Model, details *api.MatchDetails, liveUpdates []string, sp spinner.Model, loading bool, randomSpinner *RandomCharSpinner, viewLoading bool, leaguesLoaded int, totalLeagues int, pollingSpinner *RandomCharSpinner, isPolling bool, upcomingMatches []MatchDisplay) string {
 	// Handle edge case: if width/height not set, use defaults
 	if width <= 0 {
 		width = 80
@@ -218,7 +277,8 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 	panelHeight := availableHeight - 2
 
 	// Render left panel (matches list) - shifted down
-	leftPanel := RenderLiveMatchesListPanel(leftWidth, panelHeight, listModel)
+	// Upcoming matches are displayed at the bottom of the left panel
+	leftPanel := RenderLiveMatchesListPanel(leftWidth, panelHeight, listModel, upcomingMatches)
 
 	// Render right panel (match details with live updates) - shifted down
 	rightPanel := renderMatchDetailsPanelWithPolling(rightWidth, panelHeight, details, liveUpdates, sp, loading, pollingSpinner, isPolling)
@@ -248,7 +308,8 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 // RenderStatsViewWithList renders the stats view with list component.
 // Rebuilt to match live view structure exactly: spinner at top, left panel (matches), right panel (details).
 // daysLoaded and totalDays show loading progress during progressive loading.
-func RenderStatsViewWithList(width, height int, finishedList list.Model, upcomingList list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, daysLoaded int, totalDays int) string {
+// Note: Upcoming matches are now shown in the Live view instead.
+func RenderStatsViewWithList(width, height int, finishedList list.Model, details *api.MatchDetails, randomSpinner *RandomCharSpinner, viewLoading bool, dateRange int, daysLoaded int, totalDays int) string {
 	// Handle edge case: if width/height not set, use defaults
 	if width <= 0 {
 		width = 80
@@ -306,8 +367,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, upcomin
 	panelHeight := availableHeight - 2
 
 	// Render left panel (finished matches list) - match live view structure
-	// For 1-day view, combine finished and upcoming lists vertically
-	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, finishedList, upcomingList, dateRange)
+	leftPanel := RenderStatsListPanel(leftWidth, panelHeight, finishedList, dateRange)
 
 	// Render right panel (match details) - use dedicated stats panel renderer
 	rightPanel := renderStatsMatchDetailsPanel(rightWidth, panelHeight, details)
@@ -401,7 +461,7 @@ func renderStatsMatchDetailsPanel(width, height int, details *api.MatchDetails) 
 		lines = append(lines, neonLabelStyle.Render("Venue:       ")+neonValueStyle.Render(truncateString(details.Venue, contentWidth-14)))
 	}
 	if details.MatchTime != nil {
-		lines = append(lines, neonLabelStyle.Render("Date:        ")+neonValueStyle.Render(details.MatchTime.Format("02 Jan 2006, 15:04")))
+		lines = append(lines, neonLabelStyle.Render("Date:        ")+neonValueStyle.Render(details.MatchTime.Format("02 Jan 2006, 15:04")+" UTC"))
 	}
 	if details.Referee != "" {
 		lines = append(lines, neonLabelStyle.Render("Referee:     ")+neonValueStyle.Render(details.Referee))

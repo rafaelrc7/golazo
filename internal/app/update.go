@@ -99,15 +99,8 @@ func (m model) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 		availableWidth := leftWidth - frameH*2
 		availableHeight := m.height - frameV*2 - titleHeight - spinnerHeight
 		if availableWidth > 0 && availableHeight > 0 {
-			if m.statsDateRange == 1 {
-				finishedHeight := availableHeight * 60 / 100
-				upcomingHeight := availableHeight - finishedHeight
-				m.statsMatchesList.SetSize(availableWidth, finishedHeight)
-				m.upcomingMatchesList.SetSize(availableWidth, upcomingHeight)
-			} else {
-				m.statsMatchesList.SetSize(availableWidth, availableHeight)
-				m.upcomingMatchesList.SetSize(availableWidth, 0)
-			}
+			// Upcoming matches are now shown in Live view, so give full height to finished list
+			m.statsMatchesList.SetSize(availableWidth, availableHeight)
 		}
 
 	case viewSettings:
@@ -642,6 +635,13 @@ func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
 	// Add upcoming matches (only from today)
 	if msg.isToday && len(msg.upcoming) > 0 {
 		m.statsData.TodayUpcoming = append(m.statsData.TodayUpcoming, msg.upcoming...)
+
+		// Also populate liveUpcomingMatches for the live view
+		upcomingDisplay := make([]ui.MatchDisplay, 0, len(m.statsData.TodayUpcoming))
+		for _, match := range m.statsData.TodayUpcoming {
+			upcomingDisplay = append(upcomingDisplay, ui.MatchDisplay{Match: match})
+		}
+		m.liveUpcomingMatches = upcomingDisplay
 	}
 
 	// Track progress
@@ -681,19 +681,20 @@ func (m model) handleStatsDayData(msg statsDayDataMsg) (tea.Model, tea.Cmd) {
 
 // applyStatsDateFilter applies the current date range filter to the cached stats data.
 // This enables instant switching between Today/3d/5d views without new API calls.
-// All filtering is done client-side from the cached 5-day data.
+// All filtering is done client-side from the cached 5-day data based on match MatchTime.
 func (m *model) applyStatsDateFilter() {
 	if m.statsData == nil {
 		return
 	}
 
+	// Filter all views from AllFinished based on match's actual MatchTime date
 	var finishedMatches []api.Match
 	switch m.statsDateRange {
 	case 1:
-		// Today only - use pre-filtered data
-		finishedMatches = m.statsData.TodayFinished
+		// Today only - filter by match date
+		finishedMatches = filterMatchesByDays(m.statsData.AllFinished, 1)
 	case 3:
-		// Last 3 days - filter from all finished matches by date
+		// Last 3 days - filter by match date
 		finishedMatches = filterMatchesByDays(m.statsData.AllFinished, 3)
 	default:
 		// 5 days - use all data
@@ -707,35 +708,26 @@ func (m *model) applyStatsDateFilter() {
 	}
 	m.matches = displayMatches
 	m.statsMatchesList.SetItems(ui.ToMatchListItems(displayMatches))
-
-	// Upcoming matches (only shown for 1-day view)
-	if m.statsDateRange == 1 {
-		upcomingDisplayMatches := make([]ui.MatchDisplay, 0, len(m.statsData.TodayUpcoming))
-		for _, match := range m.statsData.TodayUpcoming {
-			upcomingDisplayMatches = append(upcomingDisplayMatches, ui.MatchDisplay{Match: match})
-		}
-		m.upcomingMatches = upcomingDisplayMatches
-		m.upcomingMatchesList.SetItems(ui.ToMatchListItems(upcomingDisplayMatches))
-	} else {
-		m.upcomingMatches = nil
-		m.upcomingMatchesList.SetItems(nil)
-	}
+	// Note: Upcoming matches are now shown in the Live view instead
 }
 
 // filterMatchesByDays filters matches to only include those from the last N days.
+// Uses LOCAL time for date comparison so "today" matches user's actual timezone.
 func filterMatchesByDays(matches []api.Match, days int) []api.Match {
 	if days <= 0 {
 		return matches
 	}
 
-	now := time.Now().UTC()
+	// Use local time so "today" matches the user's actual day
+	now := time.Now().Local()
 	cutoff := now.AddDate(0, 0, -(days - 1)) // Include today as day 1
 	cutoffDate := cutoff.Format("2006-01-02")
 
 	var filtered []api.Match
 	for _, match := range matches {
 		if match.MatchTime != nil {
-			matchDate := match.MatchTime.UTC().Format("2006-01-02")
+			// Compare in local time
+			matchDate := match.MatchTime.Local().Format("2006-01-02")
 			if matchDate >= cutoffDate {
 				filtered = append(filtered, match)
 			}

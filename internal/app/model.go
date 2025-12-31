@@ -33,9 +33,10 @@ type model struct {
 	selected    int
 
 	// Match data
-	matches           []ui.MatchDisplay
-	upcomingMatches   []ui.MatchDisplay // Upcoming matches for 1-day stats view
-	matchDetails      *api.MatchDetails
+	matches             []ui.MatchDisplay
+	upcomingMatches     []ui.MatchDisplay // Upcoming matches for 1-day stats view (deprecated, kept for compatibility)
+	liveUpcomingMatches []ui.MatchDisplay // Upcoming matches for live view (shown at bottom of left panel)
+	matchDetails        *api.MatchDetails
 	matchDetailsCache map[int]*api.MatchDetails // Cache to avoid repeated API calls
 	liveUpdates       []string
 	lastEvents        []api.MatchEvent

@@ -23,6 +23,7 @@ func (m model) View() string {
 			m.liveTotalBatches,
 			m.pollingSpinner,
 			m.polling,
+			m.liveUpcomingMatches,
 		)
 
 	case viewStats:
@@ -31,7 +32,6 @@ func (m model) View() string {
 		return ui.RenderStatsViewWithList(
 			m.width, m.height,
 			m.statsMatchesList,
-			m.upcomingMatchesList,
 			m.matchDetails,
 			spinner,
 			m.statsViewLoading,
@@ -88,15 +88,8 @@ func (m *model) ensureStatsListSize() {
 	availableHeight := m.height - frameV*2 - titleHeight - spinnerHeight
 
 	if availableWidth > 0 && availableHeight > 0 {
-		if m.statsDateRange == 1 {
-			finishedHeight := availableHeight * 60 / 100
-			upcomingHeight := availableHeight - finishedHeight
-			m.statsMatchesList.SetSize(availableWidth, finishedHeight)
-			m.upcomingMatchesList.SetSize(availableWidth, upcomingHeight)
-		} else {
-			m.statsMatchesList.SetSize(availableWidth, availableHeight)
-			m.upcomingMatchesList.SetSize(availableWidth, 0)
-		}
+		// Upcoming matches are now shown in Live view, so give full height to finished list
+		m.statsMatchesList.SetSize(availableWidth, availableHeight)
 	}
 }
 
