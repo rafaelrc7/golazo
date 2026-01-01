@@ -47,6 +47,7 @@ Golazo supports **40 leagues and competitions**. Customize your selection in Set
 
 | | Cup |
 |---|-----|
+| 🇨🇴 | Copa Colombia |
 | 🇪🇸 | Copa del Rey |
 | 🇮🇹 | Coppa Italia |
 | 🇫🇷 | Coupe de France |
@@ -62,6 +63,8 @@ Golazo supports **40 leagues and competitions**. Customize your selection in Set
 | 🏆 | Copa America |
 | 🏆 | Copa Libertadores |
 | 🇦🇷 | Liga Profesional |
+| 🇨🇴 | Primera A |
+| 🇨🇴 | Primera B |
 
 ## North America
 
