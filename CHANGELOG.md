@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Finished Matches Navigation** - H/left & L/right arrow keys now correctly cycle timeframe
 
 ## [0.8.0] - 2025-12-31
 
