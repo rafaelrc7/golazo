@@ -31,7 +31,7 @@ var AllSupportedLeagues = []LeagueInfo{
 	{ID: 9676, Name: "Frauen-Bundesliga", Country: "Germany"},
 	{ID: 10178, Name: "Serie A Femminile", Country: "Italy"},
 	{ID: 9667, Name: "Première Ligue Féminine", Country: "France"},
-	// Second Tier European Leagues
+	// Other European Leagues
 	{ID: 48, Name: "EFL Championship", Country: "England"},
 	{ID: 57, Name: "Eredivisie", Country: "Netherlands"},
 	{ID: 61, Name: "Primeira Liga", Country: "Portugal"},
@@ -41,7 +41,6 @@ var AllSupportedLeagues = []LeagueInfo{
 	{ID: 66, Name: "Swiss Super League", Country: "Switzerland"},
 	{ID: 109, Name: "Austrian Bundesliga", Country: "Austria"},
 	{ID: 52, Name: "Ekstraklasa", Country: "Poland"},
-	// Ireland
 	{ID: 126, Name: "League of Ireland Premier Division", Country: "Ireland"},
 	{ID: 218, Name: "League of Ireland First Division", Country: "Ireland"},
 	// European Competitions

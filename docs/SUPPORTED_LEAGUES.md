@@ -1,6 +1,6 @@
 # Supported Leagues
 
-Golazo supports **42 leagues and competitions**. Customize your selection in Settings.
+Golazo supports **40+ leagues and competitions**. Customize your selection in Settings.
 
 > **Missing your favourite league?** [Create an issue](https://github.com/0xjuanma/golazo/issues/new) and we'll add it!
 
