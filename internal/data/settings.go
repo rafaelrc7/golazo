@@ -32,23 +32,29 @@ var AllSupportedLeagues = []LeagueInfo{
 	{ID: 10178, Name: "Serie A Femminile", Country: "Italy"},
 	{ID: 9667, Name: "Première Ligue Féminine", Country: "France"},
 	// Other European Leagues
-	{ID: 48, Name: "EFL Championship", Country: "England"},
-	{ID: 57, Name: "Eredivisie", Country: "Netherlands"},
-	{ID: 61, Name: "Primeira Liga", Country: "Portugal"},
+	{ID: 67, Name: "Allsvenskan", Country: "Sweden"},
+	{ID: 38, Name: "Austrian Bundesliga", Country: "Austria"},
 	{ID: 114, Name: "Belgian Pro League", Country: "Belgium"},
+	{ID: 48, Name: "EFL Championship", Country: "England"},
+	{ID: 108, Name: "EFL League One", Country: "England"},
+	{ID: 109, Name: "EFL League Two", Country: "England"},
+	{ID: 52, Name: "Ekstraklasa", Country: "Poland"},
+	{ID: 57, Name: "Eredivisie", Country: "Netherlands"},
+	{ID: 126, Name: "League of Ireland First Division", Country: "Ireland"},
+	{ID: 218, Name: "League of Ireland Premier Division", Country: "Ireland"},
+	{ID: 61, Name: "Primeira Liga", Country: "Portugal"},
 	{ID: 64, Name: "Scottish Premiership", Country: "Scotland"},
+	{ID: 135, Name: "Super League 1", Country: "Greece"},
+	{ID: 46, Name: "Superligaen", Country: "Denmark"},
 	{ID: 71, Name: "Süper Lig", Country: "Turkey"},
 	{ID: 66, Name: "Swiss Super League", Country: "Switzerland"},
-	{ID: 109, Name: "Austrian Bundesliga", Country: "Austria"},
-	{ID: 52, Name: "Ekstraklasa", Country: "Poland"},
-	{ID: 126, Name: "League of Ireland Premier Division", Country: "Ireland"},
-	{ID: 218, Name: "League of Ireland First Division", Country: "Ireland"},
 	// European Competitions
 	{ID: 42, Name: "UEFA Champions League", Country: "Europe"},
-	{ID: 9375, Name: "Women's UEFA Champions League", Country: "Europe"},
+	{ID: 10216, Name: "UEFA Conference League", Country: "Europe"},
 	{ID: 73, Name: "UEFA Europa League", Country: "Europe"},
 	{ID: 50, Name: "UEFA Euro", Country: "Europe"},
 	{ID: 292, Name: "UEFA Women's Euro", Country: "Europe"},
+	{ID: 9375, Name: "Women's UEFA Champions League", Country: "Europe"},
 	// Domestic Cups
 	{ID: 138, Name: "Copa del Rey", Country: "Spain"},
 	{ID: 132, Name: "FA Cup", Country: "England"},
@@ -58,22 +64,32 @@ var AllSupportedLeagues = []LeagueInfo{
 	{ID: 134, Name: "Coupe de France", Country: "France"},
 	// South America
 	{ID: 268, Name: "Brasileirão Série A", Country: "Brazil"},
-	{ID: 112, Name: "Liga Profesional", Country: "Argentina"},
-	{ID: 14, Name: "Copa Libertadores", Country: "South America"},
+	{ID: 8814, Name: "Brasileirão Série B", Country: "Brazil"},
 	{ID: 44, Name: "Copa America", Country: "South America"},
+	{ID: 9490, Name: "Copa Colombia", Country: "Colombia"},
+	{ID: 14, Name: "Copa Libertadores", Country: "South America"},
+	{ID: 299, Name: "Copa Sudamericana", Country: "South America"},
+	{ID: 112, Name: "Liga Profesional", Country: "Argentina"},
 	{ID: 274, Name: "Primera A", Country: "Colombia"},
 	{ID: 9175, Name: "Primera B", Country: "Colombia"},
-	{ID: 9490, Name: "Copa Colombia", Country: "Colombia"},
 	// North America
 	{ID: 130, Name: "MLS", Country: "USA"},
 	{ID: 9134, Name: "NWSL", Country: "USA"},
 	{ID: 230, Name: "Liga MX", Country: "Mexico"},
 	// Middle East
 	{ID: 536, Name: "Saudi Pro League", Country: "Saudi Arabia"},
+	// Asia
+	{ID: 9478, Name: "Indian Super League", Country: "India"},
+	{ID: 223, Name: "J. League", Country: "Japan"},
+	{ID: 9080, Name: "K League 1", Country: "South Korea"},
+	// Oceania
+	{ID: 113, Name: "A-League", Country: "Australia"},
+	// Africa
+	{ID: 519, Name: "Egyptian Premier League", Country: "Egypt"},
 	// International
+	{ID: 289, Name: "Africa Cup of Nations", Country: "International"},
 	{ID: 77, Name: "FIFA World Cup", Country: "International"},
 	{ID: 76, Name: "Women's FIFA World Cup", Country: "International"},
-	{ID: 289, Name: "Africa Cup of Nations", Country: "Africa"},
 }
 
 // Settings represents user preferences stored in settings.yaml.

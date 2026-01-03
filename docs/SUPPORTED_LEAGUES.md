@@ -1,6 +1,6 @@
 # Supported Leagues
 
-Golazo supports **40+ leagues and competitions**. Customize your selection in Settings.
+Golazo supports **50+ leagues and competitions**. Customize your selection in Settings.
 
 > **Missing your favourite league?** [Create an issue](https://github.com/0xjuanma/golazo/issues/new) and we'll add it!
 
@@ -23,15 +23,20 @@ Golazo supports **40+ leagues and competitions**. Customize your selection in Se
 
 | | League |
 |---|--------|
+| 🇸🇪 | Allsvenskan |
 | 🇦🇹 | Austrian Bundesliga |
 | 🇧🇪 | Belgian Pro League |
 | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 | EFL Championship |
+| 🏴󠁧󠁢󠁥󠁮󠁧󠁿 | EFL League One |
+| 🏴󠁧󠁢󠁥󠁮󠁧󠁿 | EFL League Two |
 | 🇵🇱 | Ekstraklasa |
 | 🇳🇱 | Eredivisie |
-| 🇮🇪 | League of Ireland Premier Division |
 | 🇮🇪 | League of Ireland First Division |
+| 🇮🇪 | League of Ireland Premier Division |
 | 🇵🇹 | Primeira Liga |
 | 🏴󠁧󠁢󠁳󠁣󠁴󠁿 | Scottish Premiership |
+| 🇬🇷 | Super League 1 |
+| 🇩🇰 | Superligaen |
 | 🇹🇷 | Süper Lig |
 | 🇨🇭 | Swiss Super League |
 
@@ -40,6 +45,7 @@ Golazo supports **40+ leagues and competitions**. Customize your selection in Se
 | | Competition |
 |---|-------------|
 | 🏆 | UEFA Champions League |
+| 🏆 | UEFA Conference League |
 | 🇪🇺 | UEFA Euro |
 | 🏆 | UEFA Europa League |
 | 🇪🇺 | UEFA Women's Euro |
@@ -62,8 +68,10 @@ Golazo supports **40+ leagues and competitions**. Customize your selection in Se
 | | League/Competition |
 |---|-------------------|
 | 🇧🇷 | Brasileirão Série A |
+| 🇧🇷 | Brasileirão Série B |
 | 🏆 | Copa America |
 | 🏆 | Copa Libertadores |
+| 🏆 | Copa Sudamericana |
 | 🇦🇷 | Liga Profesional |
 | 🇨🇴 | Primera A |
 | 🇨🇴 | Primera B |
@@ -81,6 +89,26 @@ Golazo supports **40+ leagues and competitions**. Customize your selection in Se
 | | League |
 |---|--------|
 | 🇸🇦 | Saudi Pro League |
+
+## Asia
+
+| | League |
+|---|--------|
+| 🇮🇳 | Indian Super League |
+| 🇯🇵 | J. League |
+| 🇰🇷 | K League 1 |
+
+## Oceania
+
+| | League |
+|---|--------|
+| 🇦🇺 | A-League |
+
+## Africa
+
+| | League |
+|---|--------|
+| 🇪🇬 | Egyptian Premier League |
 
 ## International
 
