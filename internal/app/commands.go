@@ -401,3 +401,10 @@ func checkMissingGoalLinksCmd() tea.Cmd {
 		return checkMissingGoalLinksMsg{}
 	}
 }
+
+// processPendingGoalsCmd creates a command that triggers processing of pending goals queue.
+func processPendingGoalsCmd() tea.Cmd {
+	return func() tea.Msg {
+		return processPendingGoalsMsg{}
+	}
+}

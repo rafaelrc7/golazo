@@ -70,3 +70,7 @@ type goalLinksMsg struct {
 // checkMissingGoalLinksMsg triggers checking for goals that exist in match details
 // but don't have cached replay links. Sent periodically or on view changes.
 type checkMissingGoalLinksMsg struct{}
+
+// processPendingGoalsMsg triggers processing of the pending goals queue.
+// Processes goals that need Reddit link fetching in background batches.
+type processPendingGoalsMsg struct{}

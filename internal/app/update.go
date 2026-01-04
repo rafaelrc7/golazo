@@ -70,6 +70,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case checkMissingGoalLinksMsg:
 		return m.handleCheckMissingGoalLinks()
 
+	case processPendingGoalsMsg:
+		return m.handleProcessPendingGoals()
+
 	default:
 		// Fallback handler for ui.TickMsg type assertion
 		if _, ok := msg.(ui.TickMsg); ok {
@@ -185,24 +188,57 @@ func (m model) handleMatchDetails(msg matchDetailsMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Trigger goal link fetching from Reddit (on-demand, non-blocking)
-	// Only fetch if there are goal events and we have a Reddit client
+	// Add any uncached goals to the pending goals queue
+	// This replaces immediate fetching with queued background processing
 	if m.redditClient != nil && len(msg.details.Events) > 0 {
-		hasGoals := false
 		for _, event := range msg.details.Events {
 			if event.Type == "goal" {
-				hasGoals = true
-				break
+				key := reddit.GoalLinkKey{MatchID: msg.details.ID, Minute: event.Minute}
+
+				// Only add if not already cached and not already pending
+				if cached := m.redditClient.Cache().Get(key); cached == nil {
+					if _, exists := m.pendingGoals[key]; !exists {
+						// Construct full GoalInfo for the pending goal
+						scorer := ""
+						if event.Player != nil {
+							scorer = *event.Player
+						}
+
+						isHome := event.Team.ID == msg.details.HomeTeam.ID
+
+						homeScore := 0
+						awayScore := 0
+						if msg.details.HomeScore != nil {
+							homeScore = *msg.details.HomeScore
+						}
+						if msg.details.AwayScore != nil {
+							awayScore = *msg.details.AwayScore
+						}
+
+						matchTime := time.Now()
+						if msg.details.MatchTime != nil {
+							matchTime = *msg.details.MatchTime
+						}
+
+						m.pendingGoals[key] = reddit.GoalInfo{
+							MatchID:    msg.details.ID,
+							HomeTeam:   msg.details.HomeTeam.Name,
+							AwayTeam:   msg.details.AwayTeam.Name,
+							ScorerName: scorer,
+							Minute:     event.Minute,
+							HomeScore:  homeScore,
+							AwayScore:  awayScore,
+							IsHomeTeam: isHome,
+							MatchTime:  matchTime,
+						}
+					}
+				}
 			}
-		}
-		if hasGoals {
-			cmds = append(cmds, fetchGoalLinks(m.redditClient, msg.details))
 		}
 	}
 
-	// Also check for any goals that might be missing from cache (defensive programming)
-	// This handles cases where match data was updated after initial fetch
-	cmds = append(cmds, checkMissingGoalLinksCmd())
+	// Trigger background processing of pending goals
+	cmds = append(cmds, processPendingGoalsCmd())
 
 	// Cache for stats view (including during preload)
 	if m.currentView == viewStats || m.pendingSelection == 0 {
@@ -904,10 +940,12 @@ func (m model) handlePollTick(msg pollTickMsg) (tea.Model, tea.Cmd) {
 	m.loading = true
 
 	// Start the actual API call, spinner animation, and 1s display timer
+	// Also check for any new goals that might have been scored since last poll
 	return m, tea.Batch(
 		fetchPollMatchDetails(m.fotmobClient, msg.matchID, m.useMockData),
 		ui.SpinnerTick(),
 		schedulePollSpinnerHide(), // Hide spinner after 0.5 seconds
+		checkMissingGoalLinksCmd(), // Check for new goals during live updates
 	)
 }
 
@@ -1024,9 +1062,52 @@ func (m model) handleGoalLinks(msg goalLinksMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleCheckMissingGoalLinks checks if current match details have goals that don't have cached links,
-// and triggers fetching for those goals. This ensures that as new goals appear in match data,
-// their replay links are automatically fetched.
+// handleProcessPendingGoals processes goals from the pending queue in background batches.
+// This replaces reactive per-match fetching with efficient queued processing.
+func (m model) handleProcessPendingGoals() (tea.Model, tea.Cmd) {
+	// Skip if no Reddit client or no pending goals
+	if m.redditClient == nil || len(m.pendingGoals) == 0 {
+		return m, nil
+	}
+
+	// Process up to 5 goals at a time to maintain rate limits
+	const batchSize = 5
+	var goalsToProcess []reddit.GoalInfo
+	keysToRemove := make([]reddit.GoalLinkKey, 0, batchSize)
+
+	count := 0
+	for key, goalInfo := range m.pendingGoals {
+		if count >= batchSize {
+			break
+		}
+
+		// Double-check it's still not cached (defensive programming)
+		if cached := m.redditClient.Cache().Get(key); cached != nil {
+			// Already cached, remove from pending
+			delete(m.pendingGoals, key)
+			continue
+		}
+
+		goalsToProcess = append(goalsToProcess, goalInfo)
+		keysToRemove = append(keysToRemove, key)
+		count++
+	}
+
+	// Remove processed keys from pending queue
+	for _, key := range keysToRemove {
+		delete(m.pendingGoals, key)
+	}
+
+	// If we found goals to process, fetch their links
+	if len(goalsToProcess) > 0 {
+		return m, fetchGoalLinksForGoals(m.redditClient, goalsToProcess)
+	}
+
+	return m, nil
+}
+
+// handleCheckMissingGoalLinks is kept for backward compatibility
+// but now just adds goals to the pending queue instead of immediate fetching
 func (m model) handleCheckMissingGoalLinks() (tea.Model, tea.Cmd) {
 	// Only check if we have match details and a Reddit client
 	if m.matchDetails == nil || m.redditClient == nil {
@@ -1045,63 +1126,54 @@ func (m model) handleCheckMissingGoalLinks() (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Find goals in match details that don't have cached links
-	var missingGoals []reddit.GoalInfo
-
+	// Add any uncached goals to the pending queue with full GoalInfo
 	for _, event := range m.matchDetails.Events {
-		if event.Type != "goal" {
-			continue
-		}
+		if event.Type == "goal" {
+			key := reddit.GoalLinkKey{MatchID: m.matchDetails.ID, Minute: event.Minute}
 
-		// Check if this goal is already cached (found or not found)
-		key := reddit.GoalLinkKey{MatchID: m.matchDetails.ID, Minute: event.Minute}
-		if cached := m.redditClient.Cache().Get(key); cached != nil {
-			// Already cached (either found or not found), skip
-			continue
-		}
+			// Only add if not already cached and not already pending
+			if cached := m.redditClient.Cache().Get(key); cached == nil {
+				if _, exists := m.pendingGoals[key]; !exists {
+					// Construct full GoalInfo
+					scorer := ""
+					if event.Player != nil {
+						scorer = *event.Player
+					}
 
-		// Goal not cached, extract info and add to missing goals
-		scorer := ""
-		if event.Player != nil {
-			scorer = *event.Player
-		}
+					isHome := event.Team.ID == m.matchDetails.HomeTeam.ID
 
-		isHome := event.Team.ID == m.matchDetails.HomeTeam.ID
+					homeScore := 0
+					awayScore := 0
+					if m.matchDetails.HomeScore != nil {
+						homeScore = *m.matchDetails.HomeScore
+					}
+					if m.matchDetails.AwayScore != nil {
+						awayScore = *m.matchDetails.AwayScore
+					}
 
-		homeScore := 0
-		awayScore := 0
-		if m.matchDetails.HomeScore != nil {
-			homeScore = *m.matchDetails.HomeScore
-		}
-		if m.matchDetails.AwayScore != nil {
-			awayScore = *m.matchDetails.AwayScore
-		}
+					matchTime := time.Now()
+					if m.matchDetails.MatchTime != nil {
+						matchTime = *m.matchDetails.MatchTime
+					}
 
-		matchTime := time.Now()
-		if m.matchDetails.MatchTime != nil {
-			matchTime = *m.matchDetails.MatchTime
+					m.pendingGoals[key] = reddit.GoalInfo{
+						MatchID:    m.matchDetails.ID,
+						HomeTeam:   m.matchDetails.HomeTeam.Name,
+						AwayTeam:   m.matchDetails.AwayTeam.Name,
+						ScorerName: scorer,
+						Minute:     event.Minute,
+						HomeScore:  homeScore,
+						AwayScore:  awayScore,
+						IsHomeTeam: isHome,
+						MatchTime:  matchTime,
+					}
+				}
+			}
 		}
-
-		missingGoals = append(missingGoals, reddit.GoalInfo{
-			MatchID:    m.matchDetails.ID,
-			HomeTeam:   m.matchDetails.HomeTeam.Name,
-			AwayTeam:   m.matchDetails.AwayTeam.Name,
-			ScorerName: scorer,
-			Minute:     event.Minute,
-			HomeScore:  homeScore,
-			AwayScore:  awayScore,
-			IsHomeTeam: isHome,
-			MatchTime:  matchTime,
-		})
 	}
 
-	// Only fetch if we found missing goals AND it's been at least 30 seconds since last check
-	// This prevents excessive API calls when rapidly switching views
-	if len(missingGoals) > 0 {
-		return m, fetchGoalLinksForGoals(m.redditClient, missingGoals)
-	}
-
-	return m, nil
+	// Trigger background processing
+	return m, processPendingGoalsCmd()
 }
 
 // GoalReplayURL returns the replay URL for a goal if available.
