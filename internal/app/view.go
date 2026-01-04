@@ -115,7 +115,8 @@ func (m *model) buildGoalLinksMap() ui.GoalLinksMap {
 
 	result := make(ui.GoalLinksMap)
 	for key, link := range m.goalLinks {
-		if link != nil && link.URL != "" {
+		// Filter out "__NOT_FOUND__" and invalid URLs using helper function
+		if link != nil && ui.IsValidReplayURL(link.URL) {
 			uiKey := ui.MakeGoalLinkKey(key.MatchID, key.Minute)
 			result[uiKey] = link.URL
 		}

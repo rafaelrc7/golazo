@@ -72,7 +72,8 @@ func getReplayIndicator(details *api.MatchDetails, goalLinks GoalLinksMap, minut
 		return ""
 	}
 	replayURL := goalLinks.GetReplayURL(details.ID, minute)
-	if replayURL != "" {
+	// Validate URL using helper function (filters out "__NOT_FOUND__" and invalid URLs)
+	if IsValidReplayURL(replayURL) {
 		return CreateGoalLinkDisplay("", replayURL)
 	}
 	return ""

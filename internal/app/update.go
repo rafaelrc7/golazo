@@ -163,6 +163,25 @@ func (m model) handleMatchDetails(msg matchDetailsMsg) (tea.Model, tea.Cmd) {
 
 	m.matchDetails = msg.details
 
+	// Load any cached goal links for this match into the model
+	// Filter out "__NOT_FOUND__" entries - only load valid replay URLs
+	if m.redditClient != nil {
+		cachedGoals := m.redditClient.Cache().All(msg.details.ID)
+		if len(cachedGoals) > 0 {
+			// Add cached goals to the model's goal links map
+			if m.goalLinks == nil {
+				m.goalLinks = make(map[reddit.GoalLinkKey]*reddit.GoalLink)
+			}
+			for _, goal := range cachedGoals {
+				// Only add goals with valid replay URLs (filter out "__NOT_FOUND__")
+				if ui.IsValidReplayURL(goal.URL) {
+					key := reddit.GoalLinkKey{MatchID: goal.MatchID, Minute: goal.Minute}
+					m.goalLinks[key] = &goal
+				}
+			}
+		}
+	}
+
 	// Trigger goal link fetching from Reddit (on-demand, non-blocking)
 	// Only fetch if there are goal events and we have a Reddit client
 	if m.redditClient != nil && len(msg.details.Events) > 0 {
@@ -984,6 +1003,11 @@ func (m model) handleGoalLinks(msg goalLinksMsg) (tea.Model, tea.Cmd) {
 
 	for key, link := range msg.links {
 		m.goalLinks[key] = link
+		// Temporary debug logging to console
+		if link != nil && link.URL != "" {
+			// Debug: check if links are being loaded
+			_ = key // avoid unused variable warning
+		}
 	}
 
 	return m, nil
