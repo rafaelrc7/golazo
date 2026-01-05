@@ -59,7 +59,8 @@ func HyperlinkWithFallback(text, url, fallbackIndicator string) string {
 // If the terminal doesn't support hyperlinks OR no URL is provided,
 // returns the original goalText unchanged (no visible difference).
 func CreateGoalLinkDisplay(goalText, replayURL string) string {
-	if replayURL == "" {
+	// Validate URL using helper function
+	if !IsValidReplayURL(replayURL) {
 		return goalText
 	}
 
@@ -161,3 +162,13 @@ const ReplayLinkIndicator = "[▶REPLAY]"
 
 // ReplayLinkIndicatorAlt is an alternative ASCII indicator for terminals without emoji.
 const ReplayLinkIndicatorAlt = "[replay]"
+
+// IsValidReplayURL validates that a URL is a valid HTTP/HTTPS URL and not a marker.
+// Returns true only for valid http:// or https:// URLs.
+// Filters out empty strings, "__NOT_FOUND__" markers, and invalid URL schemes.
+func IsValidReplayURL(url string) bool {
+	if url == "" || url == "__NOT_FOUND__" {
+		return false
+	}
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}

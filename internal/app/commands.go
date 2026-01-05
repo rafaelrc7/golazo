@@ -328,6 +328,8 @@ func fetchGoalLinks(redditClient *reddit.Client, details *api.MatchDetails) tea.
 				continue
 			}
 
+			// Debug log goal extraction (will be logged when redditClient.GoalLinks is called)
+
 			scorer := ""
 			if event.Player != nil {
 				scorer = *event.Player
@@ -375,3 +377,24 @@ func fetchGoalLinks(redditClient *reddit.Client, details *api.MatchDetails) tea.
 		return goalLinksMsg{matchID: details.ID, links: links}
 	}
 }
+
+// fetchGoalLinksForGoals fetches goal replay links from Reddit for specific goals.
+// This is used when new goals are detected that don't have cached links yet.
+// Uses the same batching and rate limiting as the full match fetch.
+func fetchGoalLinksForGoals(redditClient *reddit.Client, goals []reddit.GoalInfo) tea.Cmd {
+	return func() tea.Msg {
+		if redditClient == nil || len(goals) == 0 {
+			return goalLinksMsg{matchID: 0, links: nil}
+		}
+
+		// Fetch links for the specific goals (uses cache internally)
+		links := redditClient.GoalLinks(goals)
+
+		// Use the match ID from the first goal (all goals should be from same match)
+		matchID := goals[0].MatchID
+
+		return goalLinksMsg{matchID: matchID, links: links}
+	}
+}
+
+

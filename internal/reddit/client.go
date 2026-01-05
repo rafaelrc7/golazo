@@ -6,18 +6,22 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
 
+// DebugLogger is a function type for debug logging
+type DebugLogger func(message string)
+
 // Fetcher defines the interface for fetching data from Reddit.
-// This allows for easy swapping between public JSON API and OAuth API.
+// Uses Reddit's public JSON API for goal link retrieval.
 type Fetcher interface {
 	Search(query string, limit int, matchTime time.Time) ([]SearchResult, error)
 }
 
 // PublicJSONFetcher uses Reddit's public JSON endpoints (no auth required).
-// Note: Has stricter rate limits than OAuth API.
+// Uses Reddit's public JSON API with rate limiting.
 type PublicJSONFetcher struct {
 	httpClient  *http.Client
 	userAgent   string
@@ -49,6 +53,11 @@ func (r *rateLimiter) wait() {
 	r.lastRequest = time.Now()
 }
 
+// Simple user agent exactly like main branch
+var userAgents = []string{
+	"golazo:v1.0.0 (by /u/golazo_app)",
+}
+
 // NewPublicJSONFetcher creates a new fetcher using public Reddit JSON API.
 func NewPublicJSONFetcher() *PublicJSONFetcher {
 	return &PublicJSONFetcher{
@@ -66,10 +75,10 @@ func NewPublicJSONFetcher() *PublicJSONFetcher {
 func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time) ([]SearchResult, error) {
 	f.rateLimiter.wait()
 
-	// Build timestamp range for filtering (match day -1 to +2 days)
-	// Goals are usually posted within hours of happening, but we add buffer
-	startTime := matchTime.Add(-24 * time.Hour).Unix()
-	endTime := matchTime.Add(48 * time.Hour).Unix()
+	// Build timestamp range for filtering (match day only ±12 hours)
+	// Goal videos are posted very soon after goals happen - limit to match day
+	startTime := matchTime.Add(-12 * time.Hour).Unix()
+	endTime := matchTime.Add(12 * time.Hour).Unix()
 
 	// Build search URL for r/soccer with Media flair filter and timestamp
 	// Reddit CloudSearch supports timestamp:START..END syntax
@@ -121,9 +130,18 @@ func (f *PublicJSONFetcher) Search(query string, limit int, matchTime time.Time)
 }
 
 // Client provides goal replay link fetching from Reddit r/soccer.
+// Uses Reddit's public JSON API for goal link retrieval.
 type Client struct {
-	fetcher Fetcher
-	cache   *GoalLinkCache
+	fetcher     Fetcher // Reddit public API fetcher
+	cache       *GoalLinkCache
+	debugLogger DebugLogger // Optional debug logger function
+}
+
+// debugLog is a helper method to safely call the debug logger if it exists
+func (c *Client) debugLog(message string) {
+	if c.debugLogger != nil {
+		c.debugLogger(message)
+	}
 }
 
 // NewClient creates a new Reddit client with the default public JSON fetcher.
@@ -139,8 +157,25 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+// NewClientWithDebug creates a new Reddit client with debug logging enabled.
+// Uses public JSON API like main branch.
+func NewClientWithDebug(debugLogger DebugLogger) (*Client, error) {
+	cache, err := NewGoalLinkCache()
+	if err != nil {
+		return nil, fmt.Errorf("create cache: %w", err)
+	}
+
+	debugLogger("Initializing Reddit client with public API")
+
+	return &Client{
+		fetcher:     NewPublicJSONFetcher(),
+		cache:       cache,
+		debugLogger: debugLogger,
+	}, nil
+}
+
 // NewClientWithFetcher creates a new Reddit client with a custom fetcher.
-// Use this for testing or when switching to OAuth API.
+// Use this for testing with custom fetchers.
 func NewClientWithFetcher(fetcher Fetcher, cache *GoalLinkCache) *Client {
 	return &Client{
 		fetcher: fetcher,
@@ -181,10 +216,11 @@ func (c *Client) GoalLink(goal GoalInfo) (*GoalLink, error) {
 }
 
 // BatchSize is the maximum number of goals to fetch per batch.
-const BatchSize = 5
+// Reduced to make requests even more spaced out.
+const BatchSize = 3
 
 // BatchDelay is the delay between batches to avoid rate limiting.
-const BatchDelay = 2 * time.Second
+const BatchDelay = 5 * time.Second
 
 // GoalLinks retrieves links for multiple goals, using cache where available.
 // Goals are de-duplicated and batched to avoid rate limiting.
@@ -216,7 +252,7 @@ func (c *Client) GoalLinks(goals []GoalInfo) map[GoalLinkKey]*GoalLink {
 		uncachedGoals = append(uncachedGoals, goal)
 	}
 
-	// Fetch uncached goals in batches
+	// Fetch uncached goals in batches with conservative delays
 	for i := 0; i < len(uncachedGoals); i += BatchSize {
 		// Add delay between batches (not before first batch)
 		if i > 0 {
@@ -241,15 +277,65 @@ func (c *Client) GoalLinks(goals []GoalInfo) map[GoalLinkKey]*GoalLink {
 	return results
 }
 
-// searchForGoal searches Reddit for a specific goal.
+// searchForGoal searches Reddit for a specific goal with conservative retry logic.
 func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
+	// Conservative retry logic - Reddit is very aggressive with CAPTCHA detection
+	maxRetries := 2               // Reduced from 3
+	baseDelay := 60 * time.Second // Increased delay between retries
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 30s, 60s, 120s
+			delay := time.Duration(attempt) * baseDelay
+			time.Sleep(delay)
+		}
+
+		result, err := c.searchForGoalOnce(goal)
+		if err == nil {
+			return result, nil
+		}
+
+		// Check if this is a CAPTCHA/rate limit error
+		if strings.Contains(err.Error(), "CAPTCHA") ||
+			strings.Contains(err.Error(), "blocking requests") ||
+			strings.Contains(err.Error(), "rate limit") ||
+			strings.Contains(err.Error(), "HTML instead of JSON") {
+			// Don't retry CAPTCHA errors - Reddit is very aggressive, just give up
+			c.debugLog(fmt.Sprintf("Reddit blocking goal %d:%d: giving up immediately", goal.MatchID, goal.Minute))
+			return nil, err
+		}
+
+		// For other errors or if we've exhausted retries, return the error
+		return nil, err
+	}
+
+	return nil, nil // No match found after all retries
+}
+
+// searchForGoalOnce performs a single search attempt for a goal.
+func (c *Client) searchForGoalOnce(goal GoalInfo) (*GoalLink, error) {
 	// Strategy 1: Both teams + minute (most specific, try first)
 	query1 := fmt.Sprintf("%s %s %d'", goal.HomeTeam, goal.AwayTeam, goal.Minute)
+	c.debugLog(fmt.Sprintf("Reddit search query: '%s' for goal %d:%d (%s vs %s)",
+		query1, goal.MatchID, goal.Minute, goal.HomeTeam, goal.AwayTeam))
 	results1, err := c.fetcher.Search(query1, 15, goal.MatchTime)
+	if err != nil {
+		c.debugLog(fmt.Sprintf("Reddit search failed for query '%s': %v", query1, err))
+	} else {
+		c.debugLog(fmt.Sprintf("Reddit search returned %d results for query '%s'", len(results1), query1))
+		// Debug: log the first few result titles
+		for i, result := range results1 {
+			if i < 3 { // Log first 3 results
+				c.debugLog(fmt.Sprintf("Result %d: '%s'", i+1, result.Title))
+			}
+		}
+	}
 	if err == nil {
 		// Check if we found a good match with the first strategy
 		match := findBestMatch(results1, goal)
+		c.debugLog(fmt.Sprintf("findBestMatch result for goal %d:%d (score %d-%d): %v", goal.MatchID, goal.Minute, goal.HomeScore, goal.AwayScore, match != nil))
 		if match != nil {
+			c.debugLog(fmt.Sprintf("Found goal link for %d:%d: %s (post: %s)", goal.MatchID, goal.Minute, match.URL, match.PostURL))
 			// Found a match, return it immediately to avoid additional API calls
 			return &GoalLink{
 				MatchID:   goal.MatchID,
@@ -276,8 +362,12 @@ func (c *Client) searchForGoal(goal GoalInfo) (*GoalLink, error) {
 		scoringTeam = goal.HomeTeam
 	}
 	query2 := fmt.Sprintf("%s %d'", scoringTeam, goal.Minute)
+	c.debugLog(fmt.Sprintf("Reddit search query (strategy 2): '%s' for goal %d:%d", query2, goal.MatchID, goal.Minute))
 	results2, err := c.fetcher.Search(query2, 15, goal.MatchTime)
-	if err == nil {
+	if err != nil {
+		c.debugLog(fmt.Sprintf("Reddit search failed for strategy 2 query '%s': %v", query2, err))
+	} else {
+		c.debugLog(fmt.Sprintf("Reddit search returned %d results for strategy 2 query '%s'", len(results2), query2))
 		allResults = append(allResults, results2...)
 	}
 
@@ -315,4 +405,27 @@ func (c *Client) ClearCache() error {
 // Cache returns the underlying cache for direct access if needed.
 func (c *Client) Cache() *GoalLinkCache {
 	return c.cache
+}
+
+// isCaptchaResponse detects if Reddit is serving a CAPTCHA or bot detection page.
+// This happens when Reddit blocks automated requests.
+func isCaptchaResponse(body string) bool {
+	captchaIndicators := []string{
+		"prove your humanity",
+		"captcha",
+		"robot",
+		"automated",
+		"blocked",
+		"rate limit",
+		"too many requests",
+	}
+
+	bodyLower := strings.ToLower(body)
+	for _, indicator := range captchaIndicators {
+		if strings.Contains(bodyLower, indicator) {
+			return true
+		}
+	}
+
+	return false
 }

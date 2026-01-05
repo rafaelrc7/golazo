@@ -8,10 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Debug Mode** - New `--debug` CLI flag with automatic log rotation, UI indicators, and comprehensive API failure logging
 
 ### Changed
+- **Cache TTL Management** - Improved caching with separate TTL for successful links (7 days) and failures (5 minutes)
 
 ### Fixed
+- **Goal Link Processing & Cache Expiration Logic** - Optimized goal processing logic and NOT_FOUND entries now properly expire and allow retry after 5 minutes
+- **Live Goal-replay Link** - Resolved inconsistent rendering of goal links in live view
 
 ## [0.11.0] - 2026-01-03
 

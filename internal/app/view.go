@@ -9,7 +9,7 @@ import (
 func (m model) View() string {
 	switch m.currentView {
 	case viewMain:
-		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading)
+		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading, m.debugMode)
 
 	case viewLiveMatches:
 		m.ensureLiveListSize()
@@ -28,6 +28,7 @@ func (m model) View() string {
 			m.polling,
 			m.liveUpcomingMatches,
 			m.buildGoalLinksMap(),
+			m.debugMode,
 		)
 
 	case viewStats:
@@ -43,13 +44,14 @@ func (m model) View() string {
 			m.statsDaysLoaded,
 			m.statsTotalDays,
 			m.buildGoalLinksMap(),
+			m.debugMode,
 		)
 
 	case viewSettings:
-		return ui.RenderSettingsView(m.width, m.height, m.settingsState)
+		return ui.RenderSettingsView(m.width, m.height, m.settingsState, m.debugMode)
 
 	default:
-		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading)
+		return ui.RenderMainMenu(m.width, m.height, m.selected, m.spinner, m.randomSpinner, m.mainViewLoading, m.debugMode)
 	}
 }
 
@@ -108,6 +110,7 @@ func (m *model) ensureStatsSpinner() *ui.RandomCharSpinner {
 }
 
 // buildGoalLinksMap converts the model's goal links to a UI-friendly map.
+// Also triggers fetching for any goals that exist in match details but are not cached.
 func (m *model) buildGoalLinksMap() ui.GoalLinksMap {
 	if len(m.goalLinks) == 0 {
 		return nil
@@ -115,13 +118,15 @@ func (m *model) buildGoalLinksMap() ui.GoalLinksMap {
 
 	result := make(ui.GoalLinksMap)
 	for key, link := range m.goalLinks {
-		if link != nil && link.URL != "" {
+		// Filter out "__NOT_FOUND__" and invalid URLs using helper function
+		if link != nil && ui.IsValidReplayURL(link.URL) {
 			uiKey := ui.MakeGoalLinkKey(key.MatchID, key.Minute)
 			result[uiKey] = link.URL
 		}
 	}
 	return result
 }
+
 
 // Ensure reddit.GoalLinkKey is used (avoid unused import)
 var _ reddit.GoalLinkKey

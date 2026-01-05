@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
@@ -63,6 +64,20 @@ var (
 	spinnerStyle = lipgloss.NewStyle().
 			Foreground(neonCyan)
 )
+
+// getReplayIndicator returns the replay link indicator for a goal if available.
+// This consolidates replay link logic used across finished and live views (DRY principle).
+func getReplayIndicator(details *api.MatchDetails, goalLinks GoalLinksMap, minute int) string {
+	if details == nil || goalLinks == nil {
+		return ""
+	}
+	replayURL := goalLinks.GetReplayURL(details.ID, minute)
+	// Validate URL using helper function (filters out "__NOT_FOUND__" and invalid URLs)
+	if IsValidReplayURL(replayURL) {
+		return CreateGoalLinkDisplay("", replayURL)
+	}
+	return ""
+}
 
 // buildEventContent structures event content with symbol+type adjacent to center time.
 // Home: [Player] [Symbol] [TYPE] ← expands left (type closest to center)
@@ -303,11 +318,7 @@ func renderMatchDetailsPanelFull(width, height int, details *api.MatchDetails, l
 				playerDetails := lipgloss.NewStyle().Foreground(neonWhite).Render(player)
 
 				// Check for replay link and create indicator
-				replayIndicator := ""
-				replayURL := goalLinks.GetReplayURL(details.ID, goal.Minute)
-				if replayURL != "" {
-					replayIndicator = CreateGoalLinkDisplay("", replayURL)
-				}
+				replayIndicator := getReplayIndicator(details, goalLinks, goal.Minute)
 
 				goalStyle := lipgloss.NewStyle().Foreground(neonRed).Bold(true)
 				goalContent := buildEventContent(playerDetails, replayIndicator, "●", goalStyle.Render("GOAL"), isHome)
@@ -430,7 +441,7 @@ func renderMatchDetailsPanelFull(width, height int, details *api.MatchDetails, l
 			// Events are already sorted descending by minute
 			var updatesList []string
 			for _, update := range liveUpdates {
-				updateLine := renderStyledLiveUpdate(update, contentWidth)
+				updateLine := renderStyledLiveUpdate(update, contentWidth, details, goalLinks)
 				updatesList = append(updatesList, updateLine)
 			}
 			content.WriteString(strings.Join(updatesList, "\n"))
@@ -499,7 +510,7 @@ func extractMinuteFromUpdate(update string) (minute string, rest string) {
 // Uses minimal symbol styling: ● gradient for goals, ▪ cyan for yellow cards, ■ red for red cards,
 // ↔ dim for substitutions, · dim for other events.
 // Applies center-aligned timeline with time in middle, symbol+type adjacent to center.
-func renderStyledLiveUpdate(update string, contentWidth int) string {
+func renderStyledLiveUpdate(update string, contentWidth int, details *api.MatchDetails, goalLinks GoalLinksMap) string {
 	if len(update) == 0 {
 		return update
 	}
@@ -529,7 +540,18 @@ func renderStyledLiveUpdate(update string, contentWidth int) string {
 		playerDetails, _ := extractPlayerAndType(contentWithoutMinute, "[GOAL]")
 		styledType := applyGradientToText("GOAL", startColor, endColor)
 		styledPlayer := whiteStyle.Render(playerDetails)
-		styledContent = buildEventContent(styledPlayer, "", symbol, styledType, isHome)
+
+		// Check for replay link for live goals
+		replayIndicator := ""
+		if details != nil && goalLinks != nil {
+			// Extract minute from the update to look up replay URL
+			minuteStr := strings.TrimSuffix(minute, "'")
+			if minuteInt, err := strconv.Atoi(minuteStr); err == nil {
+				replayIndicator = getReplayIndicator(details, goalLinks, minuteInt)
+			}
+		}
+
+		styledContent = buildEventContent(styledPlayer, replayIndicator, symbol, styledType, isHome)
 	case "▪": // Yellow card
 		cardStyle := lipgloss.NewStyle().Foreground(neonYellow).Bold(true)
 		playerDetails, _ := extractPlayerAndType(contentWithoutMinute, "[CARD]")

@@ -1,10 +1,14 @@
 package app
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/data"
 	"github.com/0xjuanma/golazo/internal/fotmob"
 	"github.com/0xjuanma/golazo/internal/reddit"
 	"github.com/0xjuanma/golazo/internal/ui"
@@ -158,24 +162,43 @@ func (m model) handleMatchDetails(msg matchDetailsMsg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.liveViewLoading = false
 		m.statsViewLoading = false
+		m.debugLog("handleMatchDetails: match details is nil")
 		return m, nil
 	}
 
 	m.matchDetails = msg.details
+	m.debugLog(fmt.Sprintf("handleMatchDetails: loaded match %d (%s vs %s) with %d events",
+		msg.details.ID, msg.details.HomeTeam.Name, msg.details.AwayTeam.Name, len(msg.details.Events)))
 
-	// Trigger goal link fetching from Reddit (on-demand, non-blocking)
-	// Only fetch if there are goal events and we have a Reddit client
-	if m.redditClient != nil && len(msg.details.Events) > 0 {
-		hasGoals := false
-		for _, event := range msg.details.Events {
-			if event.Type == "goal" {
-				hasGoals = true
-				break
+	// Load any cached goal links for this match into the model
+	// Filter out "__NOT_FOUND__" entries - only load valid replay URLs
+	if m.redditClient != nil {
+		cachedGoals := m.redditClient.Cache().All(msg.details.ID)
+		if len(cachedGoals) > 0 {
+			// Add cached goals to the model's goal links map
+			if m.goalLinks == nil {
+				m.goalLinks = make(map[reddit.GoalLinkKey]*reddit.GoalLink)
+			}
+			for _, goal := range cachedGoals {
+				// Only add goals with valid replay URLs (filter out "__NOT_FOUND__")
+				if ui.IsValidReplayURL(goal.URL) {
+					key := reddit.GoalLinkKey{MatchID: goal.MatchID, Minute: goal.Minute}
+					m.goalLinks[key] = &goal
+				}
 			}
 		}
-		if hasGoals {
-			cmds = append(cmds, fetchGoalLinks(m.redditClient, msg.details))
+	}
+
+	// Check if match has goals and fetch links immediately (main branch approach)
+	hasGoals := false
+	for _, event := range msg.details.Events {
+		if event.Type == "goal" {
+			hasGoals = true
+			break
 		}
+	}
+	if hasGoals {
+		cmds = append(cmds, fetchGoalLinks(m.redditClient, msg.details))
 	}
 
 	// Cache for stats view (including during preload)
@@ -846,6 +869,8 @@ func (m model) handleMainViewCheck(msg mainViewCheckMsg) (tea.Model, tea.Cmd) {
 			m.liveMatchesList.Select(0)
 		}
 
+		// Don't auto-check on view switch - only when actually viewing specific match details
+
 		// Keep spinners running if still loading
 		if m.liveViewLoading {
 			cmds = append(cmds, m.spinner.Tick, ui.SpinnerTick())
@@ -874,6 +899,7 @@ func (m model) handlePollTick(msg pollTickMsg) (tea.Model, tea.Cmd) {
 	m.loading = true
 
 	// Start the actual API call, spinner animation, and 1s display timer
+	// Also check for any new goals that might have been scored since last poll
 	return m, tea.Batch(
 		fetchPollMatchDetails(m.fotmobClient, msg.matchID, m.useMockData),
 		ui.SpinnerTick(),
@@ -973,20 +999,162 @@ func max(a, b int) int {
 
 // handleGoalLinks processes goal replay links fetched from Reddit.
 func (m model) handleGoalLinks(msg goalLinksMsg) (tea.Model, tea.Cmd) {
+	m.debugLog(fmt.Sprintf("handleGoalLinks called for match %d with %d links", msg.matchID, len(msg.links)))
 	if len(msg.links) == 0 {
+		m.debugLog(fmt.Sprintf("GoalLinks completed for match %d: no links found", msg.matchID))
 		return m, nil
 	}
+
+	m.debugLog(fmt.Sprintf("GoalLinks completed for match %d: processing %d links", msg.matchID, len(msg.links)))
 
 	// Merge new links into the goal links map
 	if m.goalLinks == nil {
 		m.goalLinks = make(map[reddit.GoalLinkKey]*reddit.GoalLink)
 	}
 
+	validLinks := 0
+	failedLinks := 0
+
 	for key, link := range msg.links {
 		m.goalLinks[key] = link
+		if link != nil && link.URL != "" && link.URL != "__NOT_FOUND__" {
+			validLinks++
+			m.debugLog(fmt.Sprintf("Cached goal link: %d:%d → %s (post: %s)", key.MatchID, key.Minute, link.URL, link.PostURL))
+		} else if link != nil && link.URL == "__NOT_FOUND__" {
+			failedLinks++
+			m.debugLog(fmt.Sprintf("No link found: %d:%d", key.MatchID, key.Minute))
+		}
 	}
 
+	m.debugLog(fmt.Sprintf("Goal link batch complete: %d valid, %d failed", validLinks, failedLinks))
+
 	return m, nil
+}
+
+// debugLog writes debug messages to a log file without interfering with the UI
+// Only writes when debug mode is enabled. Implements log rotation to prevent excessive growth.
+func (m model) debugLog(message string) {
+	if !m.debugMode {
+		return // Silently skip if debug mode is not enabled
+	}
+
+	configDir, err := data.ConfigDir()
+	if err != nil {
+		return // Silently fail if we can't get config dir
+	}
+
+	logFile := filepath.Join(configDir, "golazo_debug.log")
+
+	// Check file size and rotate if necessary
+	if err := m.rotateDebugLogIfNeeded(logFile); err != nil {
+		return // Silently fail if rotation fails
+	}
+
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return // Silently fail if we can't open log file
+	}
+	defer f.Close()
+
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	logLine := fmt.Sprintf("[%s] %s\n", timestamp, message)
+	f.WriteString(logLine)
+}
+
+// rotateDebugLogIfNeeded rotates the debug log file when it exceeds size limits
+// Keeps up to 3 rotated files and limits current log to ~1000 lines
+func (m model) rotateDebugLogIfNeeded(logFile string) error {
+	const maxSize = 10 * 1024 * 1024 // 10MB
+	const maxLines = 1000            // Keep ~1000 recent lines
+	const maxRotatedFiles = 3
+
+	// Check if file exists and get its size
+	info, err := os.Stat(logFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // File doesn't exist, no rotation needed
+		}
+		return err
+	}
+
+	fileSize := info.Size()
+
+	// If file is too large, rotate it
+	if fileSize > maxSize {
+		// Create rotated filename with timestamp
+		timestamp := time.Now().Format("2006-01-02_15-04-05")
+		rotatedFile := logFile + "." + timestamp + ".bak"
+
+		// Rename current log to rotated file
+		if err := os.Rename(logFile, rotatedFile); err != nil {
+			return err
+		}
+
+		// Clean up old rotated files (keep only maxRotatedFiles)
+		m.cleanupOldRotatedLogs(logFile, maxRotatedFiles)
+	}
+
+	// Always trim current log to maxLines to prevent immediate regrowth
+	return m.trimDebugLogToMaxLines(logFile, maxLines)
+}
+
+// cleanupOldRotatedLogs removes old rotated log files, keeping only the most recent ones
+func (m model) cleanupOldRotatedLogs(logFile string, maxFiles int) {
+	pattern := logFile + ".*.bak"
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return
+	}
+
+	// Sort by modification time (newest first)
+	type fileInfo struct {
+		path    string
+		modTime time.Time
+	}
+	var files []fileInfo
+	for _, match := range matches {
+		info, err := os.Stat(match)
+		if err != nil {
+			continue
+		}
+		files = append(files, fileInfo{match, info.ModTime()})
+	}
+
+	// Sort by modification time (newest first)
+	for i := 0; i < len(files)-1; i++ {
+		for j := i + 1; j < len(files); j++ {
+			if files[i].modTime.Before(files[j].modTime) {
+				files[i], files[j] = files[j], files[i]
+			}
+		}
+	}
+
+	// Remove files beyond maxFiles
+	for i := maxFiles; i < len(files); i++ {
+		os.Remove(files[i].path)
+	}
+}
+
+// trimDebugLogToMaxLines keeps only the last maxLines lines in the log file
+func (m model) trimDebugLogToMaxLines(logFile string, maxLines int) error {
+	content, err := os.ReadFile(logFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil // File doesn't exist, nothing to trim
+		}
+		return err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	if len(lines) <= maxLines+1 { // +1 for potential empty line at end
+		return nil // No trimming needed
+	}
+
+	// Keep only the last maxLines lines
+	lines = lines[len(lines)-maxLines-1:]
+
+	// Write back the trimmed content
+	return os.WriteFile(logFile, []byte(strings.Join(lines, "\n")), 0644)
 }
 
 // GoalReplayURL returns the replay URL for a goal if available.

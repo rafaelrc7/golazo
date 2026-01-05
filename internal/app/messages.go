@@ -66,3 +66,4 @@ type goalLinksMsg struct {
 	matchID int
 	links   map[reddit.GoalLinkKey]*reddit.GoalLink
 }
+
