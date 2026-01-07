@@ -42,19 +42,21 @@ var rootCmd = &cobra.Command{
 		// Determine banner conditions
 		isDevBuild := Version == "dev"
 		newVersionAvailable := false
+		storedLatestVersion := ""
 
 		if !isDevBuild {
-			if latestVersion, err := data.LoadLatestVersion(); err == nil && latestVersion != "" {
-				// Check if new version is available
-				newVersionAvailable = Version != latestVersion
+			if storedLatestVersion, err := data.LoadLatestVersion(); err == nil && storedLatestVersion != "" {
+				// Check if new version is available (current app vs stored latest)
+				newVersionAvailable = Version != storedLatestVersion
 			}
 		}
 
 		// Check for updates in background (non-blocking)
 		go func() {
-			if data.ShouldCheckVersion() {
-				if version, err := data.CheckLatestVersion(); err == nil {
-					data.SaveLatestVersion(version)
+			// Check immediately if versions don't match, OR do daily check
+			if (storedLatestVersion != "" && Version != storedLatestVersion) || data.ShouldCheckVersion() {
+				if fetchedVersion, err := data.CheckLatestVersion(); err == nil {
+					data.SaveLatestVersion(fetchedVersion)
 				}
 			}
 		}()
