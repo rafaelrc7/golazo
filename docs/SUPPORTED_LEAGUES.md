@@ -1,6 +1,6 @@
 # Supported Leagues
 
-Golazo supports **50+ leagues and competitions**. Customize your selection in Settings.
+Golazo supports **60+ leagues and competitions**. Customize your selection in Settings.
 
 > **Missing your favourite league?** [Create an issue](https://github.com/0xjuanma/golazo/issues/new) and we'll add it!
 
@@ -34,11 +34,13 @@ Golazo supports **50+ leagues and competitions**. Customize your selection in Se
 | 🇮🇪 | League of Ireland First Division |
 | 🇮🇪 | League of Ireland Premier Division |
 | 🇵🇹 | Primeira Liga |
+| 🇷🇺 | Russian Premier League |
 | 🏴󠁧󠁢󠁳󠁣󠁴󠁿 | Scottish Premiership |
 | 🇬🇷 | Super League 1 |
 | 🇩🇰 | Superligaen |
 | 🇹🇷 | Süper Lig |
 | 🇨🇭 | Swiss Super League |
+| 🇺🇦 | Ukrainian Premier League |
 
 ## European Competitions
 
@@ -94,9 +96,11 @@ Golazo supports **50+ leagues and competitions**. Customize your selection in Se
 
 | | League |
 |---|--------|
+| 🇨🇳 | Chinese Super League |
 | 🇮🇳 | Indian Super League |
 | 🇯🇵 | J. League |
 | 🇰🇷 | K League 1 |
+| 🇶🇦 | Qatar Stars League |
 
 ## Oceania
 
@@ -108,12 +112,18 @@ Golazo supports **50+ leagues and competitions**. Customize your selection in Se
 
 | | League |
 |---|--------|
+| 🇲🇦 | Botola Pro |
 | 🇪🇬 | Egyptian Premier League |
+| 🇿🇦 | Premier Soccer League |
 
 ## International
 
 | | Competition |
 |---|-------------|
 | 🌍 | Africa Cup of Nations |
+| 🌍 | International Friendlies |
+| ⚽ | Club Friendlies |
+| 🏆 | FIFA Club World Cup |
 | 🌍 | FIFA World Cup |
+| 🏆 | UEFA Nations League |
 | 🌍 | Women's FIFA World Cup |

@@ -56,6 +56,8 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 46, Name: "Superligaen", Country: "Denmark"},
 		{ID: 71, Name: "Süper Lig", Country: "Turkey"},
 		{ID: 66, Name: "Swiss Super League", Country: "Switzerland"},
+		{ID: 63, Name: "Russian Premier League", Country: "Russia"},
+		{ID: 129, Name: "Ukrainian Premier League", Country: "Ukraine"},
 		// European Competitions
 		{ID: 42, Name: "UEFA Champions League", Country: "Europe"},
 		{ID: 10216, Name: "UEFA Conference League", Country: "Europe"},
@@ -94,14 +96,22 @@ var AllSupportedLeagues = map[string][]LeagueInfo{
 		{ID: 9478, Name: "Indian Super League", Country: "India"},
 		{ID: 223, Name: "J. League", Country: "Japan"},
 		{ID: 9080, Name: "K League 1", Country: "South Korea"},
+		{ID: 929, Name: "Chinese Super League", Country: "China"},
+		{ID: 401, Name: "Qatar Stars League", Country: "Qatar"},
 		// Oceania
 		{ID: 113, Name: "A-League", Country: "Australia"},
 		// Africa
 		{ID: 519, Name: "Egyptian Premier League", Country: "Egypt"},
-		// International
+		{ID: 390, Name: "Premier Soccer League", Country: "South Africa"},
+		{ID: 397, Name: "Botola Pro", Country: "Morocco"},
+		// International Competitions
 		{ID: 289, Name: "Africa Cup of Nations", Country: "International"},
 		{ID: 77, Name: "FIFA World Cup", Country: "International"},
 		{ID: 76, Name: "Women's FIFA World Cup", Country: "International"},
+		{ID: 528, Name: "FIFA Club World Cup", Country: "International"},
+		{ID: 9791, Name: "UEFA Nations League", Country: "International"},
+		{ID: 9817, Name: "Club Friendlies", Country: "International"},
+		{ID: 8891, Name: "International Friendlies", Country: "International"},
 	},
 }
 
