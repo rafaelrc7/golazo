@@ -18,6 +18,12 @@ import (
 // Used to enhance goal event display with video replay links.
 type GoalLinksMap map[string]string
 
+const (
+	minPanelHeight    = 10
+	minScrollableArea = 3
+	minListHeight     = 3
+)
+
 // MakeGoalLinkKey creates a key for the goal links map.
 func MakeGoalLinkKey(matchID, minute int) string {
 	return fmt.Sprintf("%d:%d", matchID, minute)
@@ -85,8 +91,7 @@ func RenderLiveMatchesListPanel(width, height int, listModel list.Model, upcomin
 	availableListHeight := max(
 		// -1 for separator
 		innerHeight-upcomingHeight-1,
-		// Minimum height for list
-		3)
+		minListHeight)
 
 	// Truncate list view to fit
 	listView = truncateToHeight(listView, availableListHeight)
@@ -291,9 +296,7 @@ func RenderMultiPanelViewWithList(width, height int, listModel list.Model, detai
 
 	// Reserve 3 lines at top for spinner (always reserve to prevent layout shift)
 	spinnerHeight := 3
-	availableHeight := max(height-spinnerHeight,
-		// Minimum height for panels
-		10)
+	availableHeight := max(height-spinnerHeight, minPanelHeight)
 
 	// Render spinner centered in reserved space
 	// ALWAYS use styled approach with explicit height to prevent layout shifts
@@ -382,9 +385,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, details
 
 	// Reserve 3 lines at top for spinner (always reserve to prevent layout shift)
 	spinnerHeight := 3
-	availableHeight := max(height-spinnerHeight,
-		// Minimum height for panels
-		10)
+	availableHeight := max(height-spinnerHeight, minPanelHeight)
 
 	// Render spinner centered in reserved space - match live view exactly
 	// ALWAYS use styled approach with explicit height to prevent layout shifts
@@ -438,9 +439,7 @@ func RenderStatsViewWithList(width, height int, finishedList list.Model, details
 
 	// Calculate available height for scrolling (reserve space for header)
 	headerHeight := strings.Count(headerContent, "\n") + 1
-	availableHeight = max(panelHeight-headerHeight,
-		// Minimum scrollable area
-		3)
+	availableHeight = max(panelHeight-headerHeight, minScrollableArea)
 
 	// Apply manual scroll offset when focused, otherwise show beginning of content
 	visibleLines := scrollableLines
