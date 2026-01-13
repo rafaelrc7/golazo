@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **More Leagues Supported** - Added Gaucho Brasilian competition and multiple Portuguese leagues and competitions (Thanks @felipeolibon and @rmscoelho!)
 
 ### Changed
+- **Go Version** - Updated minimum Go version 1.25
 
 ### Fixed
 
