@@ -38,6 +38,19 @@ Golazo was created for those moments when you can't stream or watch matches live
 > golazo --update
 > ```
 
+### Homebrew (macOS & Linux)
+
+```bash
+# Add the tap
+brew tap 0xjuanma/tap
+
+# Install golazo
+brew install 0xjuanma/tap/golazo
+
+# Update golazo
+brew upgrade 0xjuanma/tap/golazo
+```
+
 ### Using the install/update script (recommended)
 
 **macOS / Linux:**
