@@ -30,7 +30,7 @@ Golazo was created for those moments when you can't stream or watch matches live
 - **Finished Matches**: View results from today, last 3 days, or last 5 days
 - **50+ Leagues**: Support for major leagues across Europe, Americas, Asia, and more. Select your favorite leagues in Settings
 
-## Installation/Update
+## Installation & Update
 
 > [!IMPORTANT]
 > As of v0.6.0, you can update golazo to the latest version by running:
@@ -38,20 +38,17 @@ Golazo was created for those moments when you can't stream or watch matches live
 > golazo --update
 > ```
 
-### Homebrew (macOS & Linux)
+### Homebrew
 
 ```bash
-# Add the tap
-brew tap 0xjuanma/tap
-
-# Install golazo
+# Install
 brew install 0xjuanma/tap/golazo
 
-# Update golazo
+# Update
 brew upgrade 0xjuanma/tap/golazo
 ```
 
-### Using the install/update script (recommended)
+### Install/update script
 
 **macOS / Linux:**
 ```bash
