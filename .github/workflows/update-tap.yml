@@ -1,0 +1,20 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  update-tap:
+    # Use @main for newest version, or pin to specific version like @v1.0.0
+    uses: 0xjuanma/simple-release/.github/workflows/reusable-update-tap.yml@main
+    with:
+      tap-repo: '0xjuanma/homebrew-tap'
+      project-name: 'golazo'
+      formula-path: 'golazo.rb'
+      github-repo: '0xjuanma/golazo'
+    secrets:
+      token: ${{ secrets.TAP_TOKEN }}
