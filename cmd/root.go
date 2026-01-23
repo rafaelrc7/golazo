@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/0xjuanma/golazo/internal/app"
 	"github.com/0xjuanma/golazo/internal/data"
@@ -71,14 +73,23 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-// runUpdate executes the install script to update golazo to the latest version.
+// runUpdate executes the appropriate update method based on installation detection.
 func runUpdate() {
+	installMethod := detectInstallationMethod()
+
 	var cmd *exec.Cmd
 
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("powershell", "-Command", "irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex")
-	} else {
-		cmd = exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.sh | bash")
+	switch installMethod {
+	case "homebrew":
+		fmt.Println("Detected Homebrew installation. Updating via brew...")
+		cmd = exec.Command("brew", "upgrade", "0xjuanma/tap/golazo")
+	default: // "script"
+		fmt.Println("Updating via install script...")
+		if runtime.GOOS == "windows" {
+			cmd = exec.Command("powershell", "-Command", "irm https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.ps1 | iex")
+		} else {
+			cmd = exec.Command("bash", "-c", "curl -fsSL https://raw.githubusercontent.com/0xjuanma/golazo/main/scripts/install.sh | bash")
+		}
 	}
 
 	cmd.Stdout = os.Stdout
@@ -89,6 +100,45 @@ func runUpdate() {
 		fmt.Fprintf(os.Stderr, "Update failed: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// detectInstallationMethod returns "homebrew" or "script" based on how golazo was installed.
+func detectInstallationMethod() string {
+	// 1. Check if binary is a Homebrew symlink
+	if isHomebrewInstall() {
+		return "homebrew"
+	}
+
+	// 2. Check if brew knows about the package
+	if isBrewPackageInstalled() {
+		return "homebrew"
+	}
+
+	// 3. Default to script
+	return "script"
+}
+
+// isHomebrewInstall checks if binary is in Homebrew Cellar.
+func isHomebrewInstall() bool {
+	execPath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+
+	realPath, err := filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return false
+	}
+
+	// Check if resolved path contains Homebrew Cellar (macOS or Linux)
+	return strings.Contains(realPath, "/Cellar/golazo/")
+}
+
+// isBrewPackageInstalled checks if brew knows about golazo.
+func isBrewPackageInstalled() bool {
+	cmd := exec.Command("brew", "--prefix", "golazo")
+	err := cmd.Run()
+	return err == nil
 }
 
 // Execute runs the root command.

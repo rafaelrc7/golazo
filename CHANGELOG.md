@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **Smart Update Detection** - The `--update` command now automatically detects whether golazo was installed via Homebrew or install script and uses the appropriate update method
 
 ### Fixed
 

@@ -37,6 +37,7 @@ Golazo was created for those moments when you can't stream or watch matches live
 > ```bash
 > golazo --update
 > ```
+> The command automatically detects whether you installed via Homebrew or the install script.
 
 ### Homebrew
 
