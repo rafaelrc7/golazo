@@ -133,7 +133,7 @@ func RenderDialogFrame(title, content string, width, height int) string {
 // RenderDialogFrameWithHelp wraps content in a dialog frame with title bar and help text.
 func RenderDialogFrameWithHelp(title, content, help string, width, height int) string {
 	titleBar := RenderDialogTitleBar(title, width-6) // Account for border and padding
-	helpRendered := dialogHelpStyle.Render(help)
+	helpRendered := dialogHelpStyle.Width(width - 6).Align(lipgloss.Center).Render(help)
 
 	innerContent := lipgloss.JoinVertical(lipgloss.Left, titleBar, "", content, helpRendered)
 

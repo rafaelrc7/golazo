@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -64,8 +65,7 @@ func (d *StandingsDialog) View(width, height int) string {
 	// Build the table content
 	content := d.renderTable(dialogWidth - 6) // Account for padding and border
 
-	help := "j/k: scroll | esc: close"
-	return RenderDialogFrameWithHelp(d.leagueName+" Standings", content, help, dialogWidth, dialogHeight)
+	return RenderDialogFrameWithHelp(d.leagueName+" Standings", content, constants.HelpStandingsDialog, dialogWidth, dialogHeight)
 }
 
 // renderTable renders the standings table.
@@ -95,10 +95,10 @@ func (d *StandingsDialog) renderTable(width int) string {
 
 // Column widths for consistent alignment
 const (
-	standingsColPos  = 4  // Position column
-	standingsColStat = 5  // Stat columns (P, W, D, L)
-	standingsColGD   = 5  // Goal difference (needs +/- sign)
-	standingsColPts  = 5  // Points column
+	standingsColPos  = 4 // Position column
+	standingsColStat = 5 // Stat columns (P, W, D, L)
+	standingsColGD   = 5 // Goal difference (needs +/- sign)
+	standingsColPts  = 5 // Points column
 )
 
 // renderHeaderRow renders the table header.

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -69,8 +70,7 @@ func (d *StatisticsDialog) View(width, height int) string {
 	// Build the content
 	content := d.renderContent(dialogWidth - 6) // Account for padding and border
 
-	help := "j/k: scroll | esc: close"
-	return RenderDialogFrameWithHelp("Match Statistics", content, help, dialogWidth, dialogHeight)
+	return RenderDialogFrameWithHelp("Match Statistics", content, constants.HelpStatisticsDialog, dialogWidth, dialogHeight)
 }
 
 // renderContent renders the statistics content.

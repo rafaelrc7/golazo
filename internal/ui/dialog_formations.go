@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/0xjuanma/golazo/internal/api"
+	"github.com/0xjuanma/golazo/internal/constants"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -66,15 +67,7 @@ func (d *FormationsDialog) View(width, height int) string {
 
 	// Build the content
 	content := d.renderFormations(dialogWidth - 6)
-
-	title := d.buildTitle()
-	help := "tab/h/l: switch team | esc: close"
-	return RenderDialogFrameWithHelp(title, content, help, dialogWidth, dialogHeight)
-}
-
-// buildTitle builds the dialog title.
-func (d *FormationsDialog) buildTitle() string {
-	return "Formations"
+	return RenderDialogFrameWithHelp("Formations", content, constants.HelpFormationsDialog, dialogWidth, dialogHeight)
 }
 
 // renderFormations renders both team formations side by side.
