@@ -39,7 +39,7 @@ func (g GoalLinksMap) GetReplayURL(matchID, minute int) string {
 func RenderLiveMatchesListPanel(width, height int, listModel list.Model, upcomingMatches []MatchDisplay) string {
 	contentWidth := width - 6
 
-	title := neonPanelTitleStyle.Width(contentWidth).Render(constants.PanelLiveMatches)
+	title := design.RenderHeader(constants.PanelLiveMatches, contentWidth)
 
 	var listView string
 	if len(listModel.Items()) == 0 {
@@ -125,7 +125,6 @@ func renderUpcomingMatchLine(match MatchDisplay, maxWidth int) string {
 
 // RenderStatsListPanel renders the left panel for stats view.
 func RenderStatsListPanel(width, height int, finishedList list.Model, dateRange int, rightPanelFocused bool) string {
-	// Use compact header with diagonal fill, dim when right panel is focused
 	var header string
 	if rightPanelFocused {
 		header = design.RenderHeaderDim(constants.PanelMatchList, width-6)
