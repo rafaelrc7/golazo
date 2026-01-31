@@ -204,8 +204,8 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 		redditClient, _ = reddit.NewClient()
 	}
 
-	// Initialize animated logo for main view (600ms duration, play once, center-out animation)
-	animatedLogo := logo.NewAnimatedLogoWithType(appVersion, false, logo.DefaultOpts(), 600, 1, logo.AnimationCenterOut)
+	// Initialize animated logo for main view
+	animatedLogo := logo.NewAnimatedLogoWithType(appVersion, false, logo.DefaultOpts(), 1200, 1, logo.AnimationWave)
 
 	return model{
 		currentView:            viewMain,
@@ -228,8 +228,8 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 		statsMatchesList:       statsList,
 		upcomingMatchesList:    upcomingList,
 		statsDetailsViewport:   statsDetailsViewport,
-		statsRightPanelFocused: false,                 // Start with left panel focused
-		statsScrollOffset:      0,                     // Start at top
+		statsRightPanelFocused: false, // Start with left panel focused
+		statsScrollOffset:      0,     // Start at top
 		statsDateRange:         1,
 		pendingSelection:       -1,                    // No pending selection
 		dialogOverlay:          ui.NewDialogOverlay(), // Initialize dialog overlay
