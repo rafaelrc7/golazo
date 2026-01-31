@@ -204,8 +204,8 @@ func New(useMockData bool, debugMode bool, isDevBuild bool, newVersionAvailable 
 		redditClient, _ = reddit.NewClient()
 	}
 
-	// Initialize animated logo for main view (600ms duration, play once)
-	animatedLogo := logo.NewAnimatedLogo(appVersion, false, logo.DefaultOpts(), 600, 1)
+	// Initialize animated logo for main view (600ms duration, play once, center-out animation)
+	animatedLogo := logo.NewAnimatedLogoWithType(appVersion, false, logo.DefaultOpts(), 600, 1, logo.AnimationCenterOut)
 
 	return model{
 		currentView:            viewMain,
