@@ -5,14 +5,17 @@
 
 <div align="center">
 
+[![GitHub Stars](https://img.shields.io/github/stars/0xjuanma/golazo?style=social)](https://github.com/0xjuanma/golazo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Report Card](https://goreportcard.com/badge/github.com/0xjuanma/golazo)](https://goreportcard.com/report/github.com/0xjuanma/golazo)
 [![GitHub Release](https://img.shields.io/github/v/release/0xjuanma/golazo)](https://github.com/0xjuanma/golazo/releases/latest)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/0xjuanma/golazo/build.yml)](https://github.com/0xjuanma/golazo/actions/workflows/build.yml)
 
-A minimalist terminal user interface (TUI) for following football(i.e, soccer) matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
+A minimalist terminal user interface (TUI) for following football (soccer) matches in real-time. Get live match updates, finished match statistics, and minute-by-minute events directly in your terminal.
 
 Golazo was created for those moments when you can't stream or watch matches live. It gives you a handy, non-intrusive, and minimalist way to keep up with your favourite football leagues.
+
+*Perfect for developers and terminal enthusiasts who want match updates without leaving their workflow.*
 </div>
 
 > [!NOTE]
@@ -22,14 +25,20 @@ Golazo was created for those moments when you can't stream or watch matches live
   <img src="assets/golazo-demo-v0.18.0.gif" alt="Golazo demo" width="800">
 </div>
 
+<div align="center">
+
+**Quick Install:** `brew install 0xjuanma/tap/golazo` · [Other options](#installation--update)
+
+</div>
+
 ## Features
 
 - **Live Match Tracking**: Timeline & Real-time updates for goals, cards, and substitutions with automatic polling
-- **Match Statistics**: Detailed stats including possession, shots, and passes
+- **Match Statistics & Details**: Possession, shots, passes, standings, formations with player ratings, and more in focused dialogs
 - **Official Highlights & Replay Links**: Clickable links for official highlights and instant goal replays
 - **Goal Notifications**: Desktop notifications for goals as they happen
 - **Finished Matches**: View results from today, last 3 days, or last 5 days
-- **50+ Leagues**: Support for major leagues across Europe, Americas, Asia, and more. Select your favorite leagues in Settings
+- **50+ Leagues**: Organized by region (Europe, Americas, Global) with tab navigation in Settings
 
 ## Installation & Update
 
